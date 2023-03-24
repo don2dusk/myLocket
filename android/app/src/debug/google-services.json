@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "80898991063",
+    "project_id": "my-locket-19cc0",
+    "storage_bucket": "my-locket-19cc0.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:80898991063:android:4d993cc6e76625af15e192",
+        "android_client_info": {
+          "package_name": "com.don2dusk.mylocket.my_locket"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "80898991063-n43jqq0tk2he7s47g73dbjhflr5h3j5i.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBzZS7vPad_sjVlSab-CVoGkMIL8HaXXWQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "80898991063-n43jqq0tk2he7s47g73dbjhflr5h3j5i.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "80898991063-l4bjaduvv4s61iof1cn7e7qrj43r4efu.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.myLocket"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
