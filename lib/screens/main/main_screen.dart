@@ -1,7 +1,12 @@
+import 'dart:async';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get_core/get_core.dart';
+import 'package:get/get_navigation/get_navigation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:my_locket/screens/screens.dart';
 import 'package:my_locket/utils/colors.dart';
 import 'package:my_locket/globals.dart' as globals;
 
@@ -155,15 +160,44 @@ class _MainScreenState extends State<MainScreen>
                         backgroundColor: secondaryColor,
                         radius: 25,
                         child: IconButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            Get.to(
+                              () => const Profile(),
+                              transition: Transition.leftToRightWithFade,
+                            );
+                          },
                           icon: const Icon(Iconsax.user, color: Colors.white),
                           splashColor: Colors.transparent,
                           highlightColor: Colors.transparent,
                         ),
                       ),
-                      currentPageIndex == 0
-                          ? TextButton.icon(
+                      currentPageIndex != 0
+                          ? TextButton(
                               onPressed: () {},
+                              style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 13, horizontal: 34),
+                                  foregroundColor: Colors.white,
+                                  backgroundColor: secondaryColor,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(30),
+                                  )),
+                              child: FadeTransition(
+                                opacity: animation,
+                                child: Text(
+                                  "Everyone",
+                                  style: GoogleFonts.rubik(
+                                      textStyle: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w500,
+                                  )),
+                                ),
+                              ),
+                            )
+                          : TextButton.icon(
+                              onPressed: () {
+                                addFriendsModal();
+                              },
                               icon: FadeTransition(
                                   opacity: animation,
                                   child: const Icon(Iconsax.people)),
@@ -186,34 +220,15 @@ class _MainScreenState extends State<MainScreen>
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(30),
                                   )),
-                            )
-                          : TextButton(
-                              onPressed: () {},
-                              style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                      vertical: 13, horizontal: 34),
-                                  foregroundColor: Colors.white,
-                                  backgroundColor: secondaryColor,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(30),
-                                  )),
-                              child: FadeTransition(
-                                opacity: animation,
-                                child: Text(
-                                  "Everyone",
-                                  style: GoogleFonts.rubik(
-                                      textStyle: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w500,
-                                  )),
-                                ),
-                              ),
                             ),
                       CircleAvatar(
                         backgroundColor: secondaryColor,
                         radius: 25,
                         child: IconButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            Get.to(() => const ChatsList(),
+                                transition: Transition.rightToLeftWithFade);
+                          },
                           icon: const Icon(Iconsax.message_2,
                               color: Colors.white),
                           splashColor: Colors.transparent,
@@ -230,6 +245,7 @@ class _MainScreenState extends State<MainScreen>
                     scrollDirection: Axis.vertical,
                     onPageChanged: (int value) {
                       setState(() {
+                        currentPageIndex = value;
                         animationController.reset();
                         animationController.forward();
                       });
@@ -616,6 +632,20 @@ class _MainScreenState extends State<MainScreen>
           );
         });
   }
+
+  void addFriendsModal() {
+    showModalBottomSheet(
+        backgroundColor: backgroundColor,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(50), topRight: Radius.circular(50)),
+        ),
+        context: context,
+        builder: (BuildContext context) {
+          return const ModalBottomSheet();
+        });
+  }
 }
 
 class _ImageItems {
@@ -629,4 +659,140 @@ class _ImageItems {
   final String userName;
   final String desc;
   final String mobileNo;
+}
+
+class ModalBottomSheet extends StatefulWidget {
+  const ModalBottomSheet({super.key});
+
+  @override
+  State<ModalBottomSheet> createState() => _ModalBottomSheetState();
+}
+
+class _ModalBottomSheetState extends State<ModalBottomSheet>
+    with SingleTickerProviderStateMixin {
+  late Timer timer;
+  late AnimationController _animationController;
+  late Animation<double> _animation;
+  int namesIndex = 0;
+  List<String> names = [
+    "family",
+    "friends",
+    "best friend",
+    "siblings",
+    "so",
+  ];
+
+  void startTimer() {
+    timer = Timer.periodic(const Duration(seconds: 2), (timer) {
+      if (namesIndex < 4) {
+        setState(() {
+          namesIndex++;
+          _animationController.reset();
+          _animationController.forward();
+          // _animationController.reverse();
+        });
+      } else {
+        setState(() {
+          namesIndex = 0;
+          _animationController.reset();
+          _animationController.forward();
+          // _animationController.reverse();
+        });
+      }
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    setState(() {
+      startTimer();
+      _animationController = AnimationController(
+        duration: const Duration(milliseconds: 750),
+        vsync: this,
+      );
+      _animation =
+          Tween<double>(begin: 0, end: 1).animate(_animationController);
+    });
+    _animationController.forward();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.95,
+      width: MediaQuery.of(context).size.width,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(50), topRight: Radius.circular(50)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 30),
+              child: Container(
+                width: 50,
+                height: 7,
+                decoration: BoxDecoration(
+                  color: Colors.grey[800],
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Text(
+                "5 out of 20 friends",
+                style: GoogleFonts.rubik(
+                    fontSize: 26, fontWeight: FontWeight.w700, color: white),
+              ),
+            ),
+            SizedBox(
+                height: 25,
+                child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text("Add your  ",
+                          style: GoogleFonts.rubik(
+                              fontSize: 18,
+                              color: termsText,
+                              fontWeight: FontWeight.w600)),
+                      FadeTransition(
+                        opacity: _animation,
+                        child: Text("${names[namesIndex]}  ",
+                            style: GoogleFonts.rubik(
+                                fontSize: 18,
+                                color: primaryColor,
+                                fontWeight: FontWeight.w600)),
+                      ),
+                      namesIndex == 0
+                          ? FadeTransition(
+                              opacity: _animation,
+                              child: Text("👨‍👩‍👧‍👦",
+                                  style: GoogleFonts.rubik(fontSize: 18)),
+                            )
+                          : (namesIndex == 3
+                              ? FadeTransition(
+                                  opacity: _animation,
+                                  child: Text("👧🏾👦🏻",
+                                      style: GoogleFonts.rubik(fontSize: 18)),
+                                )
+                              : (namesIndex == 4
+                                  ? FadeTransition(
+                                      opacity: _animation,
+                                      child: Text("❤️",
+                                          style:
+                                              GoogleFonts.rubik(fontSize: 18)),
+                                    )
+                                  : Container()))
+                    ])),
+          ],
+        ),
+      ),
+    );
+  }
 }
