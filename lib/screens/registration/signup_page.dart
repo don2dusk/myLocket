@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:my_locket/screens/screens.dart';
-
+import 'package:my_locket/globals.dart' as globals;
 import '../../utils/colors.dart';
 
 class SignupPage extends StatefulWidget {
@@ -59,9 +59,8 @@ class _SignupPageState extends State<SignupPage> {
                               Get.snackbar(
                                   'Error...', 'These fields cannot be blank.');
                             } else {
-                              // print(fnameKey.currentState!.value.toString() +
-                              //     ' ' +
-                              //     lnameKey.currentState!.value.toString());
+                              globals.name =
+                                  '${fnameKey.currentState!.value} ${lnameKey.currentState!.value}';
                               Get.offAll(() => const MainScreen());
                             }
                           },

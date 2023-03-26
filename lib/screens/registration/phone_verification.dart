@@ -104,6 +104,7 @@ class _PhoneVerificationState extends State<PhoneVerification>
                           )),
                       const SizedBox(height: 20),
                       TextFormField(
+                        autofocus: true,
                         key: codeKey,
                         cursorColor: primaryColor,
                         style: GoogleFonts.rubik(

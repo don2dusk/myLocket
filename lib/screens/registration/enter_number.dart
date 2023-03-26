@@ -63,6 +63,7 @@ class _EnterNumberState extends State<EnterNumber> {
                           )),
                       const SizedBox(height: 20),
                       PhoneFormField(
+                        autofocus: true,
                         key: phoneFomKey,
                         defaultCountry: IsoCode.NG,
                         validator: PhoneValidator.validMobile(),
