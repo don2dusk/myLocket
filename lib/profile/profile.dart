@@ -61,9 +61,29 @@ class Profile extends StatefulWidget {
   State<Profile> createState() => _ProfileState();
 }
 
-class _ProfileState extends State<Profile> {
+class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
+  late ScrollController _scrollController;
+  double _scrolloffset = 0.0;
   final double _swipeVelocityThreshold = 100.0;
   double _dragDistance = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController()
+      ..addListener(() {
+        setState(() {
+          _scrolloffset = _scrollController.offset;
+        });
+      });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
@@ -90,9 +110,45 @@ class _ProfileState extends State<Profile> {
           appBar: AppBar(
             automaticallyImplyLeading: false,
             toolbarHeight: 70,
-            backgroundColor: Colors.transparent,
+            backgroundColor: backgroundColor!
+                .withOpacity((_scrolloffset / 250).clamp(0, 1).toDouble()),
             elevation: 0,
             actions: [
+              _scrolloffset > 250
+                  ? Expanded(
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(width: 30),
+                            CircleAvatar(
+                                radius: 20,
+                                backgroundColor: secondaryColor,
+                                child: Center(
+                                  child: Text(
+                                    globals.name.isNotEmpty
+                                        ? "${globals.name.split(" ")[0][0]}${globals.name.split(" ")[1][0]}"
+                                        : "",
+                                    style: GoogleFonts.rubik(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w700,
+                                        color: termsText),
+                                  ),
+                                )),
+                            const SizedBox(width: 10),
+                            Text(
+                              globals.name.split(" ")[0],
+                              style: GoogleFonts.rubik(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white70),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : Container(),
               Align(
                 alignment: Alignment.centerRight,
                 child: IconButton(
@@ -104,6 +160,7 @@ class _ProfileState extends State<Profile> {
             ],
           ),
           body: SingleChildScrollView(
+            controller: _scrollController,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 50)
                   .copyWith(top: 70),
@@ -302,7 +359,7 @@ class _ProfileState extends State<Profile> {
                                     color: Colors.white70),
                               ),
                               Text(
-                                "5 Friends",
+                                "3 Friends",
                                 style: GoogleFonts.rubik(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
@@ -479,15 +536,9 @@ class _ProfileState extends State<Profile> {
         Container(
             width: size.width,
             decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(25),
-                color: secondaryColor,
-                boxShadow: const <BoxShadow>[
-                  BoxShadow(
-                    color: Color.fromARGB(46, 0, 0, 0),
-                    blurRadius: 5,
-                    blurStyle: BlurStyle.outer,
-                  )
-                ]),
+              borderRadius: BorderRadius.circular(25),
+              color: secondaryColor,
+            ),
             child: ListView(
               controller: ScrollController(
                   initialScrollOffset: 0, keepScrollOffset: false),

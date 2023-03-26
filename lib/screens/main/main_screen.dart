@@ -788,7 +788,7 @@ class _ModalBottomSheetState extends State<ModalBottomSheet>
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Text(
-                "5 out of 20 friends",
+                "3 out of 20 friends",
                 style: GoogleFonts.rubik(
                     fontSize: 26, fontWeight: FontWeight.w700, color: white),
               ),
