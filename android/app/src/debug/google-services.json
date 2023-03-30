@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "80898991063-7bn90lkjacdfdmt98ejcqlljra4rfrsi.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.don2dusk.mylocket.my_locket",
+            "certificate_hash": "23380edcb8d0a11154d38de3612b7a077a2d2f45"
+          }
+        },
+        {
           "client_id": "80898991063-n43jqq0tk2he7s47g73dbjhflr5h3j5i.apps.googleusercontent.com",
           "client_type": 3
         }

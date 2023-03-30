@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -66,6 +68,10 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
   double _scrolloffset = 0.0;
   final double _swipeVelocityThreshold = 100.0;
   double _dragDistance = 0.0;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  CollectionReference users = FirebaseFirestore.instance.collection('users');
 
   @override
   void initState() {
@@ -104,8 +110,8 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
           // Reset drag distance
           _dragDistance = 0.0;
         },
-        child: SafeArea(
-            child: Scaffold(
+        child: Scaffold(
+          key: _scaffoldKey,
           extendBodyBehindAppBar: true,
           appBar: AppBar(
             automaticallyImplyLeading: false,
@@ -127,9 +133,10 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                                 backgroundColor: secondaryColor,
                                 child: Center(
                                   child: Text(
-                                    globals.name.isNotEmpty
-                                        ? "${globals.name.split(" ")[0][0]}${globals.name.split(" ")[1][0]}"
-                                        : "",
+                                    // globals.name.isNotEmpty
+                                    //     ? "${globals.name.split(" ")[0][0]}${globals.name.split(" ")[1][0]}"
+                                    //     : "",
+                                    "",
                                     style: GoogleFonts.rubik(
                                         fontSize: 20,
                                         fontWeight: FontWeight.w700,
@@ -138,7 +145,8 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                                 )),
                             const SizedBox(width: 10),
                             Text(
-                              globals.name.split(" ")[0],
+                              // globals.name.split(" ")[0],
+                              "",
                               style: GoogleFonts.rubik(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w700,
@@ -181,9 +189,10 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                       child: Stack(children: [
                         Center(
                           child: Text(
-                            globals.name.isNotEmpty
-                                ? "${globals.name.split(" ")[0][0]}${globals.name.split(" ")[1][0]}"
-                                : "",
+                            // globals.name.isNotEmpty
+                            //     ? "${globals.name.split(" ")[0][0]}${globals.name.split(" ")[1][0]}"
+                            //     : "",
+                            "",
                             style: GoogleFonts.rubik(
                                 fontSize: 72,
                                 fontWeight: FontWeight.w700,
@@ -206,16 +215,35 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                     ),
                   ]),
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 20, bottom: 10),
-                  child: Text(
-                    globals.name,
-                    style: GoogleFonts.rubik(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: white),
-                  ),
-                ),
+                FutureBuilder(
+                    future: users.doc(_auth.currentUser!.uid).get(),
+                    builder:
+                        (context, AsyncSnapshot<DocumentSnapshot> snapshot) {
+                      if (snapshot.hasError) {
+                        Get.snackbar("Error", "Something went wrong");
+                      }
+
+                      if (snapshot.hasData && !snapshot.data!.exists) {
+                        Get.snackbar("Error", "Does not exist");
+                      }
+
+                      if (snapshot.connectionState == ConnectionState.done) {
+                        Map<String, dynamic> data =
+                            snapshot.data!.data() as Map<String, dynamic>;
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 20, bottom: 10),
+                          child: Text(
+                            data['name'],
+                            style: GoogleFonts.rubik(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                                color: white),
+                          ),
+                        );
+                      }
+
+                      return Container();
+                    }),
                 TextButton(
                     onPressed: () {},
                     style: TextButton.styleFrom(
@@ -472,7 +500,11 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                             color: Colors.white60,
                           ),
                           title: "Delete account",
-                          onTap: () {}),
+                          onTap: () {
+                            users.doc(_auth.currentUser!.uid).delete();
+                            _auth.currentUser!.delete();
+                            Get.offAll(() => const WelcomeScreen());
+                          }),
                       CustomTileItems(
                           leadingIcon: const Icon(
                             Icons.waving_hand_rounded,
@@ -488,7 +520,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
               ]),
             ),
           ),
-        )));
+        ));
   }
 
   Widget profilesPictureStack(double radius, Color color, AssetImage image) {

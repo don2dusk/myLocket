@@ -13,6 +13,7 @@ import 'utils/colors.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   globals.cameras = await availableCameras();
+  FocusManager.instance.primaryFocus?.unfocus();
   await Firebase.initializeApp();
   if (Platform.isAndroid) {
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
@@ -35,7 +36,7 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: backgroundColor,
       ),
       debugShowCheckedModeBanner: false,
-      home: const MainScreen(),
+      home: const WelcomeScreen(),
     );
   }
 }

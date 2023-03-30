@@ -63,10 +63,10 @@ class _MainScreenState extends State<MainScreen>
     super.initState();
     _pageViewController = PageController(keepPage: false);
     _secondPageController = PageController(keepPage: false);
-    _controller = CameraController(
-        globals.cameras[currentCameraIndex], ResolutionPreset.medium,
-        imageFormatGroup: ImageFormatGroup.jpeg, enableAudio: false);
-    _initializeControllerFuture = _controller.initialize();
+    // _controller = CameraController(
+    //     globals.cameras[currentCameraIndex], ResolutionPreset.medium,
+    //     imageFormatGroup: ImageFormatGroup.jpeg, enableAudio: false);
+    // _initializeControllerFuture = _controller.initialize();
     currentUser = _imageItems[0].userName.split(" ")[0];
 
     animationController = AnimationController(
@@ -288,52 +288,52 @@ class _MainScreenState extends State<MainScreen>
                       children: [
                         Column(
                           children: [
-                            // AspectRatio(
-                            //   aspectRatio: 1,
-                            //   child: Container(
-                            //     width: size.width,
-                            //     decoration: BoxDecoration(
-                            //       color: black,
-                            //       borderRadius: BorderRadius.circular(75),
-                            //     ),
-                            //   ),
-                            // ),
-                            FutureBuilder<void>(
-                              future: _initializeControllerFuture,
-                              builder: (context, snapshot) {
-                                if (snapshot.connectionState ==
-                                    ConnectionState.done) {
-                                  return GestureDetector(
-                                    onDoubleTap: onSwitchCamera,
-                                    child: SizedBox(
-                                        width: size.width,
-                                        height: size.width,
-                                        child: ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(75),
-                                          child: OverflowBox(
-                                              alignment: Alignment.center,
-                                              child: FittedBox(
-                                                  fit: BoxFit.fitWidth,
-                                                  child: SizedBox(
-                                                      width: size.width,
-                                                      child: CameraPreview(
-                                                          _controller)))),
-                                        )),
-                                  );
-                                } else {
-                                  return AspectRatio(
-                                    aspectRatio: 1,
-                                    child: Container(
-                                      width: size.width,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(50),
-                                      ),
-                                    ),
-                                  );
-                                }
-                              },
+                            AspectRatio(
+                              aspectRatio: 1,
+                              child: Container(
+                                width: size.width,
+                                decoration: BoxDecoration(
+                                  color: black,
+                                  borderRadius: BorderRadius.circular(75),
+                                ),
+                              ),
                             ),
+                            // FutureBuilder<void>(
+                            //   future: _initializeControllerFuture,
+                            //   builder: (context, snapshot) {
+                            //     if (snapshot.connectionState ==
+                            //         ConnectionState.done) {
+                            //       return GestureDetector(
+                            //         onDoubleTap: onSwitchCamera,
+                            //         child: SizedBox(
+                            //             width: size.width,
+                            //             height: size.width,
+                            //             child: ClipRRect(
+                            //               borderRadius:
+                            //                   BorderRadius.circular(75),
+                            //               child: OverflowBox(
+                            //                   alignment: Alignment.center,
+                            //                   child: FittedBox(
+                            //                       fit: BoxFit.fitWidth,
+                            //                       child: SizedBox(
+                            //                           width: size.width,
+                            //                           child: CameraPreview(
+                            //                               _controller)))),
+                            //             )),
+                            //       );
+                            //     } else {
+                            //       return AspectRatio(
+                            //         aspectRatio: 1,
+                            //         child: Container(
+                            //           width: size.width,
+                            //           decoration: BoxDecoration(
+                            //             borderRadius: BorderRadius.circular(50),
+                            //           ),
+                            //         ),
+                            //       );
+                            //     }
+                            //   },
+                            // ),
                             Padding(
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 40)

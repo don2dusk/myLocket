@@ -1,11 +1,14 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get_core/get_core.dart';
 import 'package:get/get_navigation/get_navigation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:my_locket/screens/screens.dart';
+import 'package:my_locket/globals.dart' as globals;
 
 import '../../utils/colors.dart';
 
@@ -21,7 +24,12 @@ class _PhoneVerificationState extends State<PhoneVerification>
   late Timer _timer;
   late AnimationController _controller;
   late Animation<double> _animation;
-  final GlobalKey<FormFieldState> codeKey = GlobalKey<FormFieldState>();
+  FirebaseAuth auth = FirebaseAuth.instance;
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  late QuerySnapshot querySnapshot;
+  final _formKey = GlobalKey<FormState>();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  String code = "";
 
   @override
   void initState() {
@@ -67,108 +75,142 @@ class _PhoneVerificationState extends State<PhoneVerification>
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
     return Scaffold(
+        key: _scaffoldKey,
         body: Padding(
             padding: const EdgeInsets.fromLTRB(20, 50, 20, 50),
             child: Center(
-                child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                  Align(
-                    alignment: Alignment.topLeft,
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.pop(context);
-                      },
-                      child: Container(
-                        height: 50,
-                        width: 50,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: secondaryColor,
+                child: Form(
+              key: _formKey,
+              child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Align(
+                      alignment: Alignment.topLeft,
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.pop(context);
+                        },
+                        child: Container(
+                          height: 50,
+                          width: 50,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: secondaryColor,
+                          ),
+                          child: const Center(
+                              child: Icon(Icons.arrow_back_ios_rounded)),
                         ),
-                        child: const Center(
-                            child: Icon(Icons.arrow_back_ios_rounded)),
                       ),
                     ),
-                  ),
-                  Expanded(
-                      child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text("Verify your number",
+                    Expanded(
+                        child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text("Verify your number",
+                            style: GoogleFonts.rubik(
+                              textStyle: const TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )),
+                        const SizedBox(height: 20),
+                        TextFormField(
+                          autofocus: true,
+                          cursorColor: primaryColor,
                           style: GoogleFonts.rubik(
-                            textStyle: const TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          )),
-                      const SizedBox(height: 20),
-                      TextFormField(
-                        autofocus: true,
-                        key: codeKey,
-                        cursorColor: primaryColor,
-                        style: GoogleFonts.rubik(
-                          textStyle: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 18,
-                          ),
-                        ),
-                        maxLength: 6,
-                        keyboardType: TextInputType.phone,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
-                        ],
-                        decoration: InputDecoration(
-                          hintStyle: GoogleFonts.rubik(
                             textStyle: const TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 18,
                             ),
                           ),
-                          hintText: '6-Digit Code',
-                          filled: true,
-                          fillColor: secondaryColor,
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              borderSide: BorderSide.none),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 20, bottom: 30),
-                        child: whattoDisplay(),
-                      ),
-                    ],
-                  )),
-                  SizedBox(
-                    width: size.width,
-                    child: TextButton(
-                        onPressed: () {
-                          if (codeKey.currentState!.value.toString().length !=
-                              6) {
-                            Get.snackbar('Error',
-                                'Invalid verification code. Try again');
-                          } else {
-                            Get.offAll(() => const SignupPage());
-                          }
-                        },
-                        style: TextButton.styleFrom(
-                          backgroundColor: primaryColor,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
+                          maxLength: 6,
+                          validator: (value) {
+                            if (value!.length < 6) {
+                              return "Invalid verification code";
+                            }
+                            return null;
+                          },
+                          onSaved: (value) => code = value!,
+                          keyboardType: TextInputType.phone,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
+                          ],
+                          decoration: InputDecoration(
+                            hintStyle: GoogleFonts.rubik(
+                              textStyle: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 18,
+                              ),
+                            ),
+                            hintText: '6-Digit Code',
+                            filled: true,
+                            fillColor: secondaryColor,
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: BorderSide.none),
                           ),
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          child: Text("Continue →",
-                              style: GoogleFonts.rubik(
-                                  textStyle: const TextStyle(
-                                color: black,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 20,
-                              ))),
-                        )),
-                  ),
-                ]))));
+                        Padding(
+                          padding: const EdgeInsets.only(top: 20, bottom: 30),
+                          child: whattoDisplay(),
+                        ),
+                      ],
+                    )),
+                    SizedBox(
+                      width: size.width,
+                      child: TextButton(
+                          onPressed: () async {
+                            if (_formKey.currentState!.validate()) {
+                              _formKey.currentState!.save();
+                              try {
+                                PhoneAuthCredential credential =
+                                    PhoneAuthProvider.credential(
+                                        verificationId: globals.verificationId,
+                                        smsCode: code);
+
+                                await auth.signInWithCredential(credential);
+                                querySnapshot = await firestore
+                                    .collection('users')
+                                    .where('phoneNumber',
+                                        isEqualTo: globals.mobileNumber)
+                                    .get();
+
+                                if (querySnapshot.docs.isNotEmpty) {
+                                  Get.offAll(() => const MainScreen());
+                                } else {
+                                  firestore
+                                      .collection('users')
+                                      .doc(auth.currentUser!.uid)
+                                      .set({
+                                    'name': "",
+                                    'phoneNumber': globals.mobileNumber,
+                                  });
+                                  Get.offAll(() => const SignupPage());
+                                }
+                              } catch (e) {
+                                Get.snackbar("Error", e.toString());
+                              }
+                            }
+                          },
+                          style: TextButton.styleFrom(
+                            backgroundColor: primaryColor,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            child: Text("Continue →",
+                                style: GoogleFonts.rubik(
+                                    textStyle: const TextStyle(
+                                  color: black,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 20,
+                                ))),
+                          )),
+                    ),
+                  ]),
+            ))));
   }
 
   Widget whattoDisplay() {
@@ -184,7 +226,17 @@ class _PhoneVerificationState extends State<PhoneVerification>
                   ),
                   backgroundColor: secondaryColor,
                 ),
-                onPressed: () {
+                onPressed: () async {
+                  await auth.verifyPhoneNumber(
+                    timeout: const Duration(seconds: 30),
+                    phoneNumber: globals.mobileNumber,
+                    verificationCompleted: (PhoneAuthCredential credential) {},
+                    verificationFailed: (FirebaseAuthException e) {},
+                    codeSent: (String verificationId, int? resendToken) {
+                      globals.verificationId = verificationId;
+                    },
+                    codeAutoRetrievalTimeout: (String verificationId) {},
+                  );
                   _resetTimer();
                   _startTimer();
                 },

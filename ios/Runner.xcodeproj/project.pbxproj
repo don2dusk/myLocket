@@ -11,6 +11,7 @@
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
 		7F06EC7829BE068C00865BCA /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 7F06EC7729BE068C00865BCA /* GoogleService-Info.plist */; };
+		7F71FC4329D38202000320B8 /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F71FC4229D38200000320B8 /* UserNotifications.framework */; };
 		7FE1DBA929CAFF11000D54C3 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7FE1DBA829CAFF11000D54C3 /* WidgetKit.framework */; };
 		7FE1DBAB29CAFF11000D54C3 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7FE1DBAA29CAFF11000D54C3 /* SwiftUI.framework */; };
 		7FE1DBAE29CAFF11000D54C3 /* myLocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FE1DBAD29CAFF11000D54C3 /* myLocket.swift */; };
@@ -67,6 +68,7 @@
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
 		7F06EC7729BE068C00865BCA /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		7F71FC4229D38200000320B8 /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = System/Library/Frameworks/UserNotifications.framework; sourceTree = SDKROOT; };
 		7FE1DBA729CAFF11000D54C3 /* myLocketExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = myLocketExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		7FE1DBA829CAFF11000D54C3 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		7FE1DBAA29CAFF11000D54C3 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -103,6 +105,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D437AB6D2E714BB7633CF281 /* Pods_Runner.framework in Frameworks */,
+				7F71FC4329D38202000320B8 /* UserNotifications.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -133,6 +136,7 @@
 		96F8CAB164FAA58E19CC1F4B /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				7F71FC4229D38200000320B8 /* UserNotifications.framework */,
 				85CE9262BA2C3925AB6017AD /* Pods_Runner.framework */,
 				7FE1DBA829CAFF11000D54C3 /* WidgetKit.framework */,
 				7FE1DBAA29CAFF11000D54C3 /* SwiftUI.framework */,
@@ -230,6 +234,8 @@
 				7FE1DBB629CAFF13000D54C3 /* PBXTargetDependency */,
 			);
 			name = Runner;
+			packageProductDependencies = (
+			);
 			productName = Runner;
 			productReference = 97C146EE1CF9000F007C117D /* Runner.app */;
 			productType = "com.apple.product-type.application";
@@ -262,6 +268,8 @@
 				Base,
 			);
 			mainGroup = 97C146E51CF9000F007C117D;
+			packageReferences = (
+			);
 			productRefGroup = 97C146EF1CF9000F007C117D /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
