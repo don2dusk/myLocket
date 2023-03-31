@@ -37,99 +37,96 @@ class _ChatPreviewState extends State<ChatPreview> {
           // Reset drag distance
           _dragDistance = 0.0;
         },
-        child: SafeArea(
-          child: Scaffold(
-            extendBodyBehindAppBar: true,
-            appBar: AppBar(
-                toolbarHeight: 70,
-                automaticallyImplyLeading: false,
-                elevation: 0,
-                backgroundColor: Colors.transparent,
-                actions: [
-                  Expanded(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.max,
-                      children: [
-                        IconButton(
-                            onPressed: () {
-                              Get.back();
-                            },
-                            icon: const Icon(Icons.arrow_back_ios_new)),
-                        Expanded(
-                          child: Center(
-                            child:
-                                Row(mainAxisSize: MainAxisSize.min, children: [
-                              CircleAvatar(
-                                radius: 20,
-                                backgroundColor: secondaryColor,
-                                backgroundImage: widget.pfp,
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                widget.userName,
-                                style: GoogleFonts.rubik(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white70),
-                              ),
-                            ]),
-                          ),
-                        ),
-                        const SizedBox(width: 50),
-                      ],
-                    ),
-                  )
-                ]),
-            body: Padding(
-              padding: const EdgeInsets.all(20),
-              child: SingleChildScrollView(
-                child: SizedBox(
-                  height: size.height - 70,
-                  width: size.width,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+        child: Scaffold(
+          extendBodyBehindAppBar: true,
+          appBar: AppBar(
+              toolbarHeight: 70,
+              automaticallyImplyLeading: false,
+              elevation: 0,
+              backgroundColor: Colors.transparent,
+              actions: [
+                Expanded(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.max,
                     children: [
-                      Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          CircleAvatar(
-                            radius: 58,
-                            backgroundColor: secondaryColor,
-                            child: Container(
-                              height: 108,
-                              decoration: BoxDecoration(
-                                color: backgroundColor,
-                                shape: BoxShape.circle,
-                              ),
+                      IconButton(
+                          onPressed: () {
+                            Get.back();
+                          },
+                          icon: const Icon(Icons.arrow_back_ios_new)),
+                      Expanded(
+                        child: Center(
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            CircleAvatar(
+                              radius: 20,
+                              backgroundColor: secondaryColor,
+                              backgroundImage: widget.pfp,
                             ),
-                          ),
-                          CircleAvatar(
-                            radius: 50,
-                            backgroundColor: secondaryColor,
-                            backgroundImage: widget.pfp,
-                          ),
-                        ],
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 20),
-                        child: Text(
-                          "Start the convo!",
-                          style: GoogleFonts.rubik(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white70),
+                            const SizedBox(width: 10),
+                            Text(
+                              widget.userName,
+                              style: GoogleFonts.rubik(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white70),
+                            ),
+                          ]),
                         ),
                       ),
-                      Text(
-                        "Reply to one of ${widget.userName}'s Lockets to start chatting",
-                        style: GoogleFonts.rubik(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: termsText),
-                        textAlign: TextAlign.center,
-                      ),
+                      const SizedBox(width: 50),
                     ],
                   ),
+                )
+              ]),
+          body: Padding(
+            padding: const EdgeInsets.all(20),
+            child: SingleChildScrollView(
+              child: SizedBox(
+                height: size.height - 70,
+                width: size.width,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        CircleAvatar(
+                          radius: 58,
+                          backgroundColor: secondaryColor,
+                          child: Container(
+                            height: 108,
+                            decoration: BoxDecoration(
+                              color: backgroundColor,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                        CircleAvatar(
+                          radius: 50,
+                          backgroundColor: secondaryColor,
+                          backgroundImage: widget.pfp,
+                        ),
+                      ],
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      child: Text(
+                        "Start the convo!",
+                        style: GoogleFonts.rubik(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white70),
+                      ),
+                    ),
+                    Text(
+                      "Reply to one of ${widget.userName}'s Lockets to start chatting",
+                      style: GoogleFonts.rubik(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: termsText),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
               ),
             ),

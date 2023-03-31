@@ -7,6 +7,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:my_locket/screens/screens.dart';
 import 'package:my_locket/utils/colors.dart';
 import 'package:my_locket/globals.dart' as globals;
+import 'package:url_launcher/url_launcher.dart';
 
 class CustomTileItems extends StatelessWidget {
   const CustomTileItems(
@@ -73,7 +74,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   CollectionReference users = FirebaseFirestore.instance.collection('users');
 
-  getNames() {
+  getData() {
     return Future(
       () async => await users
           .doc(_auth.currentUser!.uid)
@@ -82,29 +83,16 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
         var data = snapshot.data() as Map<String, dynamic>;
         setState(() {
           globals.name = data['name'];
+          globals.mobileNumber = data['phoneNumber'];
         });
       }),
-      // future: users.doc(_auth.currentUser!.uid).get(),
-      // builder: (context, AsyncSnapshot<DocumentSnapshot> snapshot) {
-      //   if (snapshot.hasError) {
-      //     return const Center(child: Text("Something went wrong"));
-      //   }
-      //   if (snapshot.connectionState == ConnectionState.done) {
-      //     Map<String, dynamic> data =
-      //         snapshot.data!.data() as Map<String, dynamic>;
-      //     setState(() {
-      //       name = data['name'];
-      //     });
-      //   }
-      //   return Container();
-      // }
     );
   }
 
   @override
   void initState() {
     super.initState();
-    getNames();
+    getData();
     _scrollController = ScrollController()
       ..addListener(() {
         setState(() {
@@ -162,10 +150,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                                 backgroundColor: secondaryColor,
                                 child: Center(
                                   child: Text(
-                                    // globals.name.isNotEmpty
-                                    //     ? "${globals.name.split(" ")[0][0]}${globals.name.split(" ")[1][0]}"
-                                    //     : "",
-                                    "",
+                                    "${globals.name.split(" ")[0][0]}${globals.name.split(" ")[1][0]}",
                                     style: GoogleFonts.rubik(
                                         fontSize: 20,
                                         fontWeight: FontWeight.w700,
@@ -174,8 +159,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                                 )),
                             const SizedBox(width: 10),
                             Text(
-                              // globals.name.split(" ")[0],
-                              "",
+                              globals.name.split(" ")[0],
                               style: GoogleFonts.rubik(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w700,
@@ -218,10 +202,9 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                       child: Stack(children: [
                         Center(
                           child: Text(
-                            // globals.name.isNotEmpty
-                            //     ? "${globals.name.split(" ")[0][0]}${globals.name.split(" ")[1][0]}"
-                            //     : "",
-                            "",
+                            globals.name.isNotEmpty
+                                ? "${globals.name.split(" ")[0][0]}${globals.name.split(" ")[1][0]}"
+                                : "",
                             style: GoogleFonts.rubik(
                                 fontSize: 72,
                                 fontWeight: FontWeight.w700,
@@ -254,7 +237,9 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                           color: white),
                     )),
                 TextButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      modalSheet("name");
+                    },
                     style: TextButton.styleFrom(
                       backgroundColor: secondaryColor,
                       padding: const EdgeInsets.all(15),
@@ -424,7 +409,9 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                           color: Colors.white60,
                         ),
                         title: "Change phone number",
-                        onTap: () {}),
+                        onTap: () {
+                          modalSheet("phone");
+                        }),
                     CustomTileItems(
                         leadingIcon: const Icon(
                           Icons.help_rounded,
@@ -467,7 +454,18 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                             color: Colors.white60,
                           ),
                           title: "Github",
-                          onTap: () {}),
+                          onTap: () async {
+                            Uri url = Uri(
+                                scheme: "https",
+                                host: "github.com",
+                                path: "/don2dusk");
+                            if (!await launchUrl(
+                              url,
+                              mode: LaunchMode.externalApplication,
+                            )) {
+                              throw Exception('Could not launch $url');
+                            }
+                          }),
                       CustomTileItems(
                           leadingIcon: const ImageIcon(
                             AssetImage("assets/imgs/twitter.png"),
@@ -475,7 +473,18 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                             color: Colors.white60,
                           ),
                           title: "Twitter",
-                          onTap: () {}),
+                          onTap: () async {
+                            Uri url = Uri(
+                                scheme: "https",
+                                host: "twitter.com",
+                                path: "/don2dusk");
+                            if (!await launchUrl(
+                              url,
+                              mode: LaunchMode.externalApplication,
+                            )) {
+                              throw Exception('Could not launch $url');
+                            }
+                          }),
                       CustomTileItems(
                           leadingIcon: const ImageIcon(
                             AssetImage("assets/imgs/linkedin.png"),
@@ -483,7 +492,18 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                             color: Colors.white60,
                           ),
                           title: "LinkedIn",
-                          onTap: () {}),
+                          onTap: () async {
+                            Uri url = Uri(
+                                scheme: "https",
+                                host: "linkedin.com",
+                                path: "/in/otega17");
+                            if (!await launchUrl(
+                              url,
+                              mode: LaunchMode.externalApplication,
+                            )) {
+                              throw Exception('Could not launch $url');
+                            }
+                          }),
                       CustomTileItems(
                           leadingIcon: const ImageIcon(
                             AssetImage("assets/imgs/click.png"),
@@ -491,7 +511,18 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                             color: Colors.white60,
                           ),
                           title: "Portfolio",
-                          onTap: () {})
+                          onTap: () async {
+                            Uri url = Uri(
+                              scheme: "https",
+                              host: "don2dusk.github.io",
+                            );
+                            if (!await launchUrl(
+                              url,
+                              mode: LaunchMode.externalApplication,
+                            )) {
+                              throw Exception('Could not launch $url');
+                            }
+                          })
                     ],
                     size),
                 menuListItems(
@@ -522,6 +553,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                           ),
                           title: "Sign out",
                           onTap: () {
+                            _auth.signOut();
                             Get.offAll(() => const WelcomeScreen());
                           }),
                     ],
@@ -530,6 +562,207 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
             ),
           ),
         ));
+  }
+
+  Widget editField(
+      String placeholder, onSaved, String initialValue, bool isEditable) {
+    Size size = MediaQuery.of(context).size;
+    return SizedBox(
+      width: size.width,
+      child: TextFormField(
+        readOnly: !isEditable,
+        autofocus: true,
+        cursorColor: primaryColor,
+        style: GoogleFonts.rubik(
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+            color: !isEditable ? Colors.grey[500] : Colors.white),
+        initialValue: initialValue,
+        decoration: InputDecoration(
+          hintText: placeholder,
+          hintStyle: GoogleFonts.rubik(
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+          ),
+          filled: true,
+          fillColor: !isEditable ? Colors.grey[700] : secondaryColor,
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(20),
+              borderSide: BorderSide.none),
+        ),
+        onSaved: onSaved,
+        validator: (value) {
+          if (value!.isEmpty) {
+            return "Field cannot be empty";
+          }
+          return null;
+        },
+      ),
+    );
+  }
+
+  void modalSheet(String type) {
+    Future<void> addName(String name) async {
+      final User? user = _auth.currentUser;
+      if (user != null) {
+        final userRef = users.doc(_auth.currentUser!.uid);
+        await userRef.update({
+          'name': name,
+        });
+      }
+    }
+
+    GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+    String newName = "";
+    Size size = MediaQuery.of(context).size;
+    showModalBottomSheet(
+        backgroundColor: backgroundColor,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(50), topRight: Radius.circular(50)),
+        ),
+        context: _scaffoldKey.currentContext!,
+        builder: (modalContext) {
+          return type == "phone"
+              ? SizedBox(
+                  height: size.height * 0.95,
+                  child: Padding(
+                    padding: const EdgeInsets.all(15),
+                    child: Column(children: [
+                      Align(
+                        alignment: Alignment.topCenter,
+                        child: Container(
+                          width: 50,
+                          height: 7,
+                          decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              color: secondaryColor),
+                        ),
+                      ),
+                      Expanded(
+                          child: Form(
+                        key: _formKey,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 50),
+                              child: Text(
+                                "Change phone number",
+                                style: GoogleFonts.rubik(
+                                  fontSize: 26,
+                                  color: white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            editField(
+                                "", (value) {}, globals.mobileNumber, false),
+                            const SizedBox(height: 50),
+                            Container(
+                              width: size.width,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(30),
+                                color: Colors.grey[500],
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 15, vertical: 20),
+                                child: Center(
+                                  child: Text("Save",
+                                      style: GoogleFonts.rubik(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w600,
+                                          color: termsText)),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ))
+                    ]),
+                  ),
+                )
+              : SizedBox(
+                  height: size.height * 0.95,
+                  child: Padding(
+                    padding: const EdgeInsets.all(15),
+                    child: Column(children: [
+                      Align(
+                        alignment: Alignment.topCenter,
+                        child: Container(
+                          width: 50,
+                          height: 7,
+                          decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              color: secondaryColor),
+                        ),
+                      ),
+                      Expanded(
+                          child: Form(
+                        key: _formKey,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 50),
+                              child: Text(
+                                "Change phone number",
+                                style: GoogleFonts.rubik(
+                                  fontSize: 26,
+                                  color: white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            editField("First name", (value) => newName += value,
+                                globals.name.split(" ")[0], true),
+                            const SizedBox(height: 20),
+                            editField(
+                                "Last name",
+                                (value) => newName += " $value",
+                                globals.name.split(" ")[1],
+                                true),
+                            const SizedBox(height: 20),
+                            SizedBox(
+                              width: size.width,
+                              child: TextButton(
+                                  onPressed: () {
+                                    if (_formKey.currentState!.validate()) {
+                                      _formKey.currentState!.save();
+                                      addName(newName);
+                                      setState(() {
+                                        globals.name = newName;
+                                      });
+                                      Get.back();
+                                    }
+                                  },
+                                  style: TextButton.styleFrom(
+                                    backgroundColor: primaryColor,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10),
+                                    child: Text("Save",
+                                        style: GoogleFonts.rubik(
+                                            textStyle: const TextStyle(
+                                          color: black,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 20,
+                                        ))),
+                                  )),
+                            ),
+                          ],
+                        ),
+                      ))
+                    ]),
+                  ),
+                );
+        });
   }
 
   Widget profilesPictureStack(double radius, Color color, AssetImage image) {
