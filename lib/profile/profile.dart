@@ -73,9 +73,38 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   CollectionReference users = FirebaseFirestore.instance.collection('users');
 
+  getNames() {
+    return Future(
+      () async => await users
+          .doc(_auth.currentUser!.uid)
+          .get()
+          .then((DocumentSnapshot snapshot) {
+        var data = snapshot.data() as Map<String, dynamic>;
+        setState(() {
+          globals.name = data['name'];
+        });
+      }),
+      // future: users.doc(_auth.currentUser!.uid).get(),
+      // builder: (context, AsyncSnapshot<DocumentSnapshot> snapshot) {
+      //   if (snapshot.hasError) {
+      //     return const Center(child: Text("Something went wrong"));
+      //   }
+      //   if (snapshot.connectionState == ConnectionState.done) {
+      //     Map<String, dynamic> data =
+      //         snapshot.data!.data() as Map<String, dynamic>;
+      //     setState(() {
+      //       name = data['name'];
+      //     });
+      //   }
+      //   return Container();
+      // }
+    );
+  }
+
   @override
   void initState() {
     super.initState();
+    getNames();
     _scrollController = ScrollController()
       ..addListener(() {
         setState(() {
@@ -215,35 +244,15 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                     ),
                   ]),
                 ),
-                FutureBuilder(
-                    future: users.doc(_auth.currentUser!.uid).get(),
-                    builder:
-                        (context, AsyncSnapshot<DocumentSnapshot> snapshot) {
-                      if (snapshot.hasError) {
-                        Get.snackbar("Error", "Something went wrong");
-                      }
-
-                      if (snapshot.hasData && !snapshot.data!.exists) {
-                        Get.snackbar("Error", "Does not exist");
-                      }
-
-                      if (snapshot.connectionState == ConnectionState.done) {
-                        Map<String, dynamic> data =
-                            snapshot.data!.data() as Map<String, dynamic>;
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 20, bottom: 10),
-                          child: Text(
-                            data['name'],
-                            style: GoogleFonts.rubik(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w700,
-                                color: white),
-                          ),
-                        );
-                      }
-
-                      return Container();
-                    }),
+                Padding(
+                    padding: const EdgeInsets.only(top: 20, bottom: 10),
+                    child: Text(
+                      globals.name,
+                      style: GoogleFonts.rubik(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: white),
+                    )),
                 TextButton(
                     onPressed: () {},
                     style: TextButton.styleFrom(
