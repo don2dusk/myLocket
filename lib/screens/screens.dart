@@ -6,3 +6,4 @@ export 'main/main_screen.dart';
 export 'package:my_locket/chats/chat_list.dart';
 export 'package:my_locket/profile/profile.dart';
 export 'package:my_locket/chats/chat_preview.dart';
+export 'main/picture_preview.dart';

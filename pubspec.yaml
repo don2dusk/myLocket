@@ -42,7 +42,10 @@ dependencies:
   google_fonts: ^4.0.3
   home_widget: ^0.2.0+1
   iconsax: ^0.0.8
+  image: ^4.0.15
   page_transition: ^2.0.9
+  path: ^1.8.2
+  path_provider: ^2.0.14
   permission_handler: ^10.2.0
   phone_form_field: ^7.0.6
   url_launcher: ^6.1.10

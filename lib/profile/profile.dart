@@ -419,7 +419,18 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                           color: Colors.white60,
                         ),
                         title: "Get Help",
-                        onTap: () {}),
+                        onTap: () async {
+                          Uri url = Uri(
+                              scheme: "https",
+                              host: "github.com",
+                              path: "/don2dusk/myLocket");
+                          if (!await launchUrl(
+                            url,
+                            mode: LaunchMode.externalApplication,
+                          )) {
+                            throw Exception('Could not launch $url');
+                          }
+                        }),
                     CustomTileItems(
                         leadingIcon: const Icon(
                           Iconsax.add_square5,

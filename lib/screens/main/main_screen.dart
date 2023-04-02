@@ -1,6 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:camera/camera.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:image/image.dart' as img;
 import 'package:flutter/material.dart';
 import 'package:get/get_core/get_core.dart';
 import 'package:get/get_navigation/get_navigation.dart';
@@ -28,6 +32,8 @@ class _MainScreenState extends State<MainScreen>
   String currentUser = "";
   final double _swipeVelocityThreshold = 100.0;
   double _dragDistance = 0.0;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  CollectionReference users = FirebaseFirestore.instance.collection('users');
 
   late AnimationController animationController;
   late Animation<double> animation;
@@ -63,10 +69,10 @@ class _MainScreenState extends State<MainScreen>
     super.initState();
     _pageViewController = PageController(keepPage: false);
     _secondPageController = PageController(keepPage: false);
-    // _controller = CameraController(
-    //     globals.cameras[currentCameraIndex], ResolutionPreset.medium,
-    //     imageFormatGroup: ImageFormatGroup.jpeg, enableAudio: false);
-    // _initializeControllerFuture = _controller.initialize();
+    _controller = CameraController(
+        globals.cameras[currentCameraIndex], ResolutionPreset.medium,
+        imageFormatGroup: ImageFormatGroup.jpeg, enableAudio: false);
+    _initializeControllerFuture = _controller.initialize();
     currentUser = _imageItems[0].userName.split(" ")[0];
 
     animationController = AnimationController(
@@ -139,7 +145,15 @@ class _MainScreenState extends State<MainScreen>
     if (!_controller.value.isInitialized) {
       return;
     }
-    await _controller.takePicture();
+    final image = await _controller.takePicture();
+    final img.Image file = img.decodeImage(await image.readAsBytes())!;
+    final img.Image flippedImage =
+        img.flip(file, direction: img.FlipDirection.horizontal);
+    final String filePath = image.path;
+    var pic = File(filePath)..writeAsBytesSync(img.encodePng(flippedImage));
+
+    Get.to(() => PicturePreview(file: pic),
+        transition: Transition.cupertinoDialog);
   }
 
   @override
@@ -288,52 +302,52 @@ class _MainScreenState extends State<MainScreen>
                       children: [
                         Column(
                           children: [
-                            AspectRatio(
-                              aspectRatio: 1,
-                              child: Container(
-                                width: size.width,
-                                decoration: BoxDecoration(
-                                  color: black,
-                                  borderRadius: BorderRadius.circular(75),
-                                ),
-                              ),
-                            ),
-                            // FutureBuilder<void>(
-                            //   future: _initializeControllerFuture,
-                            //   builder: (context, snapshot) {
-                            //     if (snapshot.connectionState ==
-                            //         ConnectionState.done) {
-                            //       return GestureDetector(
-                            //         onDoubleTap: onSwitchCamera,
-                            //         child: SizedBox(
-                            //             width: size.width,
-                            //             height: size.width,
-                            //             child: ClipRRect(
-                            //               borderRadius:
-                            //                   BorderRadius.circular(75),
-                            //               child: OverflowBox(
-                            //                   alignment: Alignment.center,
-                            //                   child: FittedBox(
-                            //                       fit: BoxFit.fitWidth,
-                            //                       child: SizedBox(
-                            //                           width: size.width,
-                            //                           child: CameraPreview(
-                            //                               _controller)))),
-                            //             )),
-                            //       );
-                            //     } else {
-                            //       return AspectRatio(
-                            //         aspectRatio: 1,
-                            //         child: Container(
-                            //           width: size.width,
-                            //           decoration: BoxDecoration(
-                            //             borderRadius: BorderRadius.circular(50),
-                            //           ),
-                            //         ),
-                            //       );
-                            //     }
-                            //   },
+                            // AspectRatio(
+                            //   aspectRatio: 1,
+                            //   child: Container(
+                            //     width: size.width,
+                            //     decoration: BoxDecoration(
+                            //       color: black,
+                            //       borderRadius: BorderRadius.circular(75),
+                            //     ),
+                            //   ),
                             // ),
+                            FutureBuilder<void>(
+                              future: _initializeControllerFuture,
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.done) {
+                                  return GestureDetector(
+                                    onDoubleTap: onSwitchCamera,
+                                    child: SizedBox(
+                                        width: size.width,
+                                        height: size.width,
+                                        child: ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(75),
+                                          child: OverflowBox(
+                                              alignment: Alignment.center,
+                                              child: FittedBox(
+                                                  fit: BoxFit.fitWidth,
+                                                  child: SizedBox(
+                                                      width: size.width,
+                                                      child: CameraPreview(
+                                                          _controller)))),
+                                        )),
+                                  );
+                                } else {
+                                  return AspectRatio(
+                                    aspectRatio: 1,
+                                    child: Container(
+                                      width: size.width,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(50),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
                             Padding(
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 40)
