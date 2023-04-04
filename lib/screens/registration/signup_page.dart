@@ -22,11 +22,12 @@ class _SignupPageState extends State<SignupPage> {
   String fullName = "";
 
   Future<void> addName(String name) async {
-    final User? user = _auth.currentUser;
+    final user = _auth.currentUser;
     if (user != null) {
       final userRef = firestore.collection('users').doc(user.uid);
       await userRef.update({
         'name': name,
+        'profileUrl': "",
       });
     }
   }

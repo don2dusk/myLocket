@@ -22,10 +22,10 @@ class PicturePreview extends StatefulWidget {
 
 class _PicturePreviewState extends State<PicturePreview> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  CollectionReference users = FirebaseFirestore.instance.collection('users');
+  FirebaseFirestore users = FirebaseFirestore.instance;
   final FirebaseStorage storage = FirebaseStorage.instance;
 
-  GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   String message = "";
 
   @override
@@ -85,15 +85,19 @@ class _PicturePreviewState extends State<PicturePreview> {
                                     scrollPhysics:
                                         const NeverScrollableScrollPhysics(),
                                     maxLines: 1,
-                                    initialValue: "Add Message",
                                     textAlign: TextAlign.center,
                                     style: GoogleFonts.rubik(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w500),
-                                    decoration: const InputDecoration(
+                                    decoration: InputDecoration(
+                                      hintText: "Add message",
+                                      hintStyle: GoogleFonts.rubik(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500),
                                       border: InputBorder.none,
                                       contentPadding:
-                                          EdgeInsets.symmetric(horizontal: 10),
+                                          const EdgeInsets.symmetric(
+                                              horizontal: 10),
                                     ),
                                   ),
                                 )),
@@ -119,24 +123,33 @@ class _PicturePreviewState extends State<PicturePreview> {
                       TextButton(
                         onPressed: () async {
                           _formKey.currentState!.save();
-                          String fileName =
-                              DateTime.now().millisecondsSinceEpoch.toString();
-                          Reference reference =
-                              storage.ref().child('images/$fileName');
+                          String fileName = await users
+                                  .collection('users')
+                                  .doc(_auth.currentUser!.uid)
+                                  .get()
+                                  .then((DocumentSnapshot snapshot) {
+                                var data =
+                                    snapshot.data() as Map<String, dynamic>;
+                                return data['phoneNumber'];
+                              }) +
+                              "-" +
+                              DateTime.now().toString();
+                          Reference reference = storage.ref().child(
+                              'images/${_auth.currentUser!.uid}/$fileName');
                           UploadTask uploadTask =
                               reference.putFile(widget.file);
                           TaskSnapshot storageTaskSnapshot =
                               await uploadTask.whenComplete(() {});
                           String downloadUrl =
                               await storageTaskSnapshot.ref.getDownloadURL();
-                          var imageRef = users
-                              .doc(_auth.currentUser!.uid)
-                              .collection('images')
-                              .doc(fileName);
+                          final imageRef =
+                              users.collection('images').doc(fileName);
                           await imageRef.set({
+                            'uid': _auth.currentUser!.uid,
                             'message': message,
                             'url': downloadUrl,
-                            'visibility': true
+                            'visibility': true,
+                            'date_created': DateTime.now().toString(),
                           });
                           Get.back();
                         },
@@ -165,26 +178,6 @@ class _PicturePreviewState extends State<PicturePreview> {
                         ),
                       ),
                     ],
-                  ),
-                ),
-                Expanded(
-                  child: Align(
-                    alignment: Alignment.bottomCenter,
-                    child: GestureDetector(
-                      onTap: () {},
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Text(
-                            "History",
-                            style: GoogleFonts.rubik(
-                                textStyle: const TextStyle(
-                                    fontSize: 18, fontWeight: FontWeight.w600)),
-                          ),
-                          const Icon(Iconsax.arrow_down_1, size: 30)
-                        ],
-                      ),
-                    ),
                   ),
                 ),
               ],

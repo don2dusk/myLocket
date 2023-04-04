@@ -1,9 +1,14 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:my_locket/screens/screens.dart';
 import 'package:my_locket/utils/colors.dart';
 import 'package:my_locket/globals.dart' as globals;
@@ -73,6 +78,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   CollectionReference users = FirebaseFirestore.instance.collection('users');
+  final FirebaseStorage storage = FirebaseStorage.instance;
 
   getData() {
     return Future(
@@ -84,9 +90,19 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
         setState(() {
           globals.name = data['name'];
           globals.mobileNumber = data['phoneNumber'];
+          globals.profileUrl = data['profileUrl'];
         });
       }),
     );
+  }
+
+  Future<void> deleteFolder(String folderPath) async {
+    var folderRef = storage.ref().child(folderPath);
+    ListResult folderContents = await folderRef.listAll();
+    for (var file in folderContents.items) {
+      await file.delete();
+    }
+    await folderRef.delete();
   }
 
   @override
@@ -145,18 +161,24 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const SizedBox(width: 30),
-                            CircleAvatar(
-                                radius: 20,
-                                backgroundColor: secondaryColor,
-                                child: Center(
-                                  child: Text(
-                                    "${globals.name.split(" ")[0][0]}${globals.name.split(" ")[1][0]}",
-                                    style: GoogleFonts.rubik(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w700,
-                                        color: termsText),
+                            globals.profileUrl == ""
+                                ? CircleAvatar(
+                                    radius: 20,
+                                    backgroundColor: secondaryColor,
+                                    child: Center(
+                                      child: Text(
+                                        "${globals.name.split(" ")[0][0]}${globals.name.split(" ")[1][0]}",
+                                        style: GoogleFonts.rubik(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w700,
+                                            color: termsText),
+                                      ),
+                                    ))
+                                : CircleAvatar(
+                                    radius: 20,
+                                    backgroundImage:
+                                        NetworkImage(globals.profileUrl),
                                   ),
-                                )),
                             const SizedBox(width: 10),
                             Text(
                               globals.name.split(" ")[0],
@@ -187,45 +209,70 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                   .copyWith(top: 70),
               child: Column(children: [
                 Center(
-                  child: Stack(alignment: Alignment.center, children: [
-                    CircleAvatar(
-                        radius: 90,
-                        backgroundColor: primaryColor,
-                        child: Container(
-                          height: 170,
-                          decoration: BoxDecoration(
-                              color: backgroundColor, shape: BoxShape.circle),
-                        )),
-                    CircleAvatar(
-                      radius: 80,
-                      backgroundColor: secondaryColor,
-                      child: Stack(children: [
-                        Center(
-                          child: Text(
-                            globals.name.isNotEmpty
-                                ? "${globals.name.split(" ")[0][0]}${globals.name.split(" ")[1][0]}"
-                                : "",
-                            style: GoogleFonts.rubik(
-                                fontSize: 72,
-                                fontWeight: FontWeight.w700,
-                                color: termsText),
-                          ),
-                        ),
-                        Align(
-                          alignment: Alignment.bottomRight,
+                  child: GestureDetector(
+                    onTap: addProfileModal,
+                    child: Stack(alignment: Alignment.center, children: [
+                      CircleAvatar(
+                          radius: 90,
+                          backgroundColor: primaryColor,
                           child: Container(
+                            height: 170,
                             decoration: BoxDecoration(
                                 color: backgroundColor, shape: BoxShape.circle),
-                            child: const Icon(
-                              Icons.add_circle_rounded,
-                              color: primaryColor,
-                              size: 40,
+                          )),
+                      globals.profileUrl == ""
+                          ? CircleAvatar(
+                              radius: 80,
+                              backgroundColor: secondaryColor,
+                              child: Stack(children: [
+                                Center(
+                                  child: Text(
+                                    globals.name.isNotEmpty
+                                        ? "${globals.name.split(" ")[0][0]}${globals.name.split(" ")[1][0]}"
+                                        : "",
+                                    style: GoogleFonts.rubik(
+                                        fontSize: 72,
+                                        fontWeight: FontWeight.w700,
+                                        color: termsText),
+                                  ),
+                                ),
+                                Align(
+                                  alignment: Alignment.bottomRight,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                        color: backgroundColor,
+                                        shape: BoxShape.circle),
+                                    child: const Icon(
+                                      Icons.add_circle_rounded,
+                                      color: primaryColor,
+                                      size: 40,
+                                    ),
+                                  ),
+                                ),
+                              ]),
+                            )
+                          : CircleAvatar(
+                              radius: 80,
+                              backgroundColor: secondaryColor,
+                              backgroundImage: NetworkImage(globals.profileUrl),
+                              child: Stack(children: [
+                                Align(
+                                  alignment: Alignment.bottomRight,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                        color: backgroundColor,
+                                        shape: BoxShape.circle),
+                                    child: const Icon(
+                                      Icons.add_circle_rounded,
+                                      color: primaryColor,
+                                      size: 40,
+                                    ),
+                                  ),
+                                ),
+                              ]),
                             ),
-                          ),
-                        ),
-                      ]),
-                    ),
-                  ]),
+                    ]),
+                  ),
                 ),
                 Padding(
                     padding: const EdgeInsets.only(top: 20, bottom: 10),
@@ -552,6 +599,27 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                           ),
                           title: "Delete account",
                           onTap: () {
+                            storage
+                                .ref()
+                                .child(
+                                    "images/${globals.mobileNumber}_profilePic")
+                                .delete();
+                            deleteFolder("images/${_auth.currentUser!.uid}");
+                            FirebaseFirestore.instance
+                                .collection("images")
+                                .where(FieldPath.documentId,
+                                    isGreaterThanOrEqualTo:
+                                        globals.mobileNumber)
+                                .get()
+                                .then((querySnapshot) {
+                              querySnapshot.docs.forEach((document) {
+                                document.reference.delete();
+                              });
+                            });
+                            _auth.signOut();
+                            globals.mobileNumber = "";
+                            globals.name = "";
+                            globals.profileUrl = "";
                             users.doc(_auth.currentUser!.uid).delete();
                             _auth.currentUser!.delete();
                             Get.offAll(() => const WelcomeScreen());
@@ -573,6 +641,156 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
             ),
           ),
         ));
+  }
+
+  void addProfileModal() {
+    Size size = MediaQuery.of(context).size;
+    final ImagePicker _picker = ImagePicker();
+
+    void saveImage(File file) async {
+      String fileName = "${globals.mobileNumber}_profilePic";
+      Reference reference = storage.ref().child('images/$fileName');
+      UploadTask uploadTask = reference.putFile(file);
+      TaskSnapshot storageTaskSnapshot = await uploadTask.whenComplete(() {});
+      String downloadUrl = await storageTaskSnapshot.ref.getDownloadURL();
+      final imageRef = users.doc(_auth.currentUser!.uid);
+      await imageRef.update({
+        'profileUrl': downloadUrl,
+      });
+    }
+
+    Future<void> _selectImage() async {
+      final XFile? selectedImage =
+          await _picker.pickImage(source: ImageSource.gallery);
+      CroppedFile? croppedFile = await ImageCropper().cropImage(
+          sourcePath: selectedImage!.path,
+          cropStyle: CropStyle.circle,
+          uiSettings: [
+            AndroidUiSettings(
+              toolbarTitle: 'Crop Image',
+              toolbarColor: backgroundColor,
+              hideBottomControls: true,
+              statusBarColor: Colors.transparent,
+              backgroundColor: backgroundColor,
+              toolbarWidgetColor: secondaryColor,
+              initAspectRatio: CropAspectRatioPreset.original,
+              lockAspectRatio: true,
+            ),
+            IOSUiSettings(
+              title: 'Crop Image',
+              aspectRatioLockEnabled: true,
+            ),
+          ],
+          aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1));
+      saveImage(File(croppedFile!.path));
+      Get.back();
+    }
+
+    Future<void> _takeImage() async {
+      final XFile? selectedImage =
+          await _picker.pickImage(source: ImageSource.camera);
+
+      CroppedFile? croppedFile = await ImageCropper().cropImage(
+          sourcePath: selectedImage!.path,
+          cropStyle: CropStyle.circle,
+          uiSettings: [
+            AndroidUiSettings(
+              toolbarTitle: 'Crop Image',
+              toolbarColor: backgroundColor,
+              hideBottomControls: true,
+              statusBarColor: Colors.transparent,
+              backgroundColor: backgroundColor,
+              toolbarWidgetColor: secondaryColor,
+              initAspectRatio: CropAspectRatioPreset.original,
+              lockAspectRatio: true,
+            ),
+            IOSUiSettings(
+              title: 'Crop Image',
+              aspectRatioLockEnabled: true,
+            ),
+          ],
+          aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1));
+      saveImage(File(croppedFile!.path));
+      Get.back();
+    }
+
+    showModalBottomSheet(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+              topRight: Radius.circular(30), topLeft: Radius.circular(30)),
+        ),
+        context: context,
+        builder: (context) {
+          return IntrinsicHeight(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: const BorderRadius.only(
+                    topRight: Radius.circular(30),
+                    topLeft: Radius.circular(30)),
+                color: backgroundColor,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    Text(
+                      "Your profile picture is visible to everyone who has your number.",
+                      style: GoogleFonts.rubik(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white70),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 30),
+                    pfpmenuButtons(size, () {
+                      _selectImage();
+                      Get.back();
+                    }, "Import from gallery", false),
+                    pfpmenuButtons(size, () {
+                      _takeImage();
+                      Get.back();
+                    }, "Take photo", false),
+                    globals.profileUrl != ""
+                        ? pfpmenuButtons(size, () async {
+                            globals.profileUrl = "";
+                            final imageRef = users.doc(_auth.currentUser!.uid);
+                            await imageRef.update({
+                              'profileUrl': "",
+                            });
+                            storage
+                                .ref()
+                                .child(
+                                    "images/${globals.mobileNumber}_profilePic")
+                                .delete();
+                            Get.back();
+                          }, "Delete profile picture", true)
+                        : const SizedBox(height: 0),
+                    pfpmenuButtons(size, () => Get.back(), "Cancel", false),
+                  ],
+                ),
+              ),
+            ),
+          );
+        });
+  }
+
+  Widget pfpmenuButtons(Size size, onTap, String text, bool isDelete) {
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        height: 70,
+        width: size.width,
+        child: Center(
+          child: Text(
+            text,
+            style: GoogleFonts.rubik(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: isDelete ? Colors.red : Colors.white70),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget editField(
@@ -614,7 +832,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
 
   void modalSheet(String type) {
     Future<void> addName(String name) async {
-      final User? user = _auth.currentUser;
+      final user = _auth.currentUser;
       if (user != null) {
         final userRef = users.doc(_auth.currentUser!.uid);
         await userRef.update({
@@ -719,7 +937,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                             Padding(
                               padding: const EdgeInsets.only(bottom: 50),
                               child: Text(
-                                "Change phone number",
+                                "Edit your info",
                                 style: GoogleFonts.rubik(
                                   fontSize: 26,
                                   color: white,

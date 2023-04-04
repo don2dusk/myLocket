@@ -27,9 +27,11 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  cached_network_image: ^3.2.3
   camera: ^0.10.3+2
   circle_flags: ^1.0.4
   cloud_firestore: ^4.4.4
+  contacts_service: ^0.6.3
   cupertino_icons: ^1.0.2
   firebase_auth: ^4.2.10
   firebase_core: ^2.7.1
@@ -43,6 +45,10 @@ dependencies:
   home_widget: ^0.2.0+1
   iconsax: ^0.0.8
   image: ^4.0.15
+  image_cropper: ^3.0.2
+  image_picker: ^0.8.7+1
+  lit_relative_date_time: ^1.2.0
+  logging: ^1.1.1
   page_transition: ^2.0.9
   path: ^1.8.2
   path_provider: ^2.0.14

@@ -183,6 +183,7 @@ class _PhoneVerificationState extends State<PhoneVerification>
                                       .doc(auth.currentUser!.uid)
                                       .set({
                                     'name': "",
+                                    'profileUrl': "",
                                     'phoneNumber': globals.mobileNumber,
                                   });
                                   Get.offAll(() => const SignupPage());

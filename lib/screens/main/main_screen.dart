@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:camera/camera.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:contacts_service/contacts_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image/image.dart' as img;
 import 'package:flutter/material.dart';
@@ -10,9 +13,39 @@ import 'package:get/get_core/get_core.dart';
 import 'package:get/get_navigation/get_navigation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:lit_relative_date_time/lit_relative_date_time.dart';
+import 'package:logging/logging.dart';
 import 'package:my_locket/screens/screens.dart';
 import 'package:my_locket/utils/colors.dart';
 import 'package:my_locket/globals.dart' as globals;
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:developer' as developer;
+
+class User {
+  final String uid;
+  final String message;
+  final String url;
+  final bool visibility;
+  final String date_created;
+  User({
+    required this.uid,
+    required this.message,
+    required this.url,
+    required this.visibility,
+    required this.date_created,
+  });
+
+  factory User.fromFirestore(DocumentSnapshot doc) {
+    Map data = doc.data() as Map<String, dynamic>;
+    return User(
+      uid: data['uid'],
+      message: data['message'],
+      url: data['url'],
+      visibility: data['visibility'],
+      date_created: data['date_created'],
+    );
+  }
+}
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -29,58 +62,79 @@ class _MainScreenState extends State<MainScreen>
   late Future<void> _initializeControllerFuture;
   int currentCameraIndex = 0;
   int currentPageIndex = 0;
-  String currentUser = "";
+  int mainPageIndex = 0;
   final double _swipeVelocityThreshold = 100.0;
   double _dragDistance = 0.0;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  CollectionReference users = FirebaseFirestore.instance.collection('users');
+  FirebaseFirestore users = FirebaseFirestore.instance;
+  var imageItems = [];
+  String userName = "";
+  String profilePicUrl = "";
+  String currentUser = "";
 
   late AnimationController animationController;
   late Animation<double> animation;
 
-  final _imageItems = <_ImageItems>[
-    const _ImageItems(
-      imageUrl: "assets/imgs/tega.jpeg",
-      mobileNo: "+2348132071223",
-      userName: "Oghenetega Eko-Brotobor",
-      desc: "Visionary",
-    ),
-    const _ImageItems(
-      imageUrl: "assets/imgs/karen.jpeg",
-      mobileNo: "+2348033495986",
-      userName: "Karen Ambrose",
-    ),
-    const _ImageItems(
-      imageUrl: "assets/imgs/daniella.jpeg",
-      mobileNo: "+2348174657238",
-      userName: "Daniella Eko-Brotobor",
-      desc: "🤭❤️",
-    ),
-    const _ImageItems(
-      imageUrl: "assets/imgs/teni.jpeg",
-      mobileNo: "+2349055849089",
-      userName: "Vienna Kalaro",
-      desc: "Lagos has shown me shege 😔",
-    ),
-  ];
+  Future<void> getUsers() async {
+    await users
+        .collection('images')
+        .orderBy('date_created', descending: true)
+        .get()
+        .then((snapshot) {
+      var userItems = [];
+      for (var doc in snapshot.docs) {
+        userItems.add(User.fromFirestore(doc));
+      }
+      imageItems = userItems;
+    });
+  }
+
+  void getuserName(String uid) async {
+    DocumentSnapshot docSnapshot =
+        await users.collection('users').doc(uid).get();
+    var data = docSnapshot.data() as Map<String, dynamic>;
+    setState(() {
+      userName = data['name'];
+    });
+  }
+
+  void getProfileUrl(String uid) async {
+    DocumentSnapshot docSnapshot =
+        await users.collection('users').doc(uid).get();
+    var data = docSnapshot.data() as Map<String, dynamic>;
+    setState(() {
+      profilePicUrl = data['profileUrl'];
+    });
+  }
+
+  void getCurrentUserfname() async {
+    DocumentSnapshot docSnapshot =
+        await users.collection('users').doc(_auth.currentUser!.uid).get();
+    var data = docSnapshot.data() as Map<String, dynamic>;
+    currentUser = data['name'];
+  }
 
   @override
   void initState() {
     super.initState();
-    _pageViewController = PageController(keepPage: false);
-    _secondPageController = PageController(keepPage: false);
-    _controller = CameraController(
-        globals.cameras[currentCameraIndex], ResolutionPreset.medium,
-        imageFormatGroup: ImageFormatGroup.jpeg, enableAudio: false);
-    _initializeControllerFuture = _controller.initialize();
-    currentUser = _imageItems[0].userName.split(" ")[0];
 
+    getCurrentUserfname();
     animationController = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 500));
     animation =
         CurvedAnimation(parent: animationController, curve: Curves.easeIn);
     animationController.reset();
     animationController.forward();
+    getUsers().then((value) async {
+      getuserName(imageItems[0].uid);
+      getProfileUrl(imageItems[0].uid);
+    });
+    _pageViewController = PageController(keepPage: false);
+    _secondPageController = PageController(keepPage: false);
+    _controller = CameraController(
+        globals.cameras[currentCameraIndex], ResolutionPreset.medium,
+        imageFormatGroup: ImageFormatGroup.jpeg, enableAudio: false);
+    _initializeControllerFuture = _controller.initialize();
   }
 
   @override
@@ -146,14 +200,19 @@ class _MainScreenState extends State<MainScreen>
       return;
     }
     final image = await _controller.takePicture();
-    final img.Image file = img.decodeImage(await image.readAsBytes())!;
-    final img.Image flippedImage =
-        img.flip(file, direction: img.FlipDirection.horizontal);
-    final String filePath = image.path;
-    var pic = File(filePath)..writeAsBytesSync(img.encodePng(flippedImage));
+    if (currentCameraIndex == 0) {
+      Get.to(() => PicturePreview(file: File(image.path)),
+          transition: Transition.cupertinoDialog);
+    } else {
+      final img.Image file = img.decodeImage(await image.readAsBytes())!;
+      final img.Image flippedImage =
+          img.flip(file, direction: img.FlipDirection.horizontal);
+      final String filePath = image.path;
+      var pic = File(filePath)..writeAsBytesSync(img.encodePng(flippedImage));
 
-    Get.to(() => PicturePreview(file: pic),
-        transition: Transition.cupertinoDialog);
+      Get.to(() => PicturePreview(file: pic),
+          transition: Transition.cupertinoDialog);
+    }
   }
 
   @override
@@ -217,7 +276,7 @@ class _MainScreenState extends State<MainScreen>
                             highlightColor: Colors.transparent,
                           ),
                         ),
-                        currentPageIndex != 0
+                        mainPageIndex != 0
                             ? TextButton(
                                 onPressed: () {},
                                 style: TextButton.styleFrom(
@@ -294,7 +353,9 @@ class _MainScreenState extends State<MainScreen>
                       scrollDirection: Axis.vertical,
                       onPageChanged: (int value) {
                         setState(() {
-                          currentPageIndex = value;
+                          mainPageIndex = value;
+                          getUsers();
+                          getuserName(imageItems[0].uid);
                           animationController.reset();
                           animationController.forward();
                         });
@@ -427,107 +488,166 @@ class _MainScreenState extends State<MainScreen>
                         Column(
                           children: [
                             Expanded(
-                                child: PageView(
-                              onPageChanged: (int value) {
-                                setState(() {
-                                  currentUser =
-                                      _imageItems[value].userName.split(" ")[0];
-                                });
-                              },
-                              controller: _secondPageController,
-                              scrollDirection: Axis.vertical,
-                              children: [
-                                for (var image in _imageItems)
-                                  Column(
-                                    children: [
-                                      SizedBox(
-                                        width: size.width,
-                                        height: size.width,
-                                        child: ClipRRect(
-                                            borderRadius:
-                                                BorderRadius.circular(75),
-                                            child: Stack(
-                                              alignment: Alignment.bottomCenter,
+                                child: imageItems.isEmpty
+                                    ? const Center(child: Text("Nothing here"))
+                                    : PageView(
+                                        controller: _secondPageController,
+                                        scrollDirection: Axis.vertical,
+                                        onPageChanged: (value) {
+                                          getUsers();
+                                          getuserName(imageItems[value].uid);
+                                          getProfileUrl(imageItems[value].uid);
+                                          setState(() {
+                                            currentPageIndex = value;
+                                          });
+                                        },
+                                        children: [
+                                          for (var image in imageItems)
+                                            Column(
                                               children: [
                                                 SizedBox(
                                                   width: size.width,
                                                   height: size.width,
-                                                  child: OverflowBox(
-                                                    alignment: Alignment.center,
-                                                    child: FittedBox(
-                                                      fit: BoxFit.fitWidth,
-                                                      child: SizedBox(
-                                                        width: size.width,
-                                                        child: Image(
-                                                          image: AssetImage(
-                                                              image.imageUrl),
+                                                  child: ClipRRect(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              75),
+                                                      child: Stack(
+                                                        alignment: Alignment
+                                                            .bottomCenter,
+                                                        children: [
+                                                          SizedBox(
+                                                            width: size.width,
+                                                            height: size.width,
+                                                            child: OverflowBox(
+                                                              alignment:
+                                                                  Alignment
+                                                                      .center,
+                                                              child: FittedBox(
+                                                                fit: BoxFit
+                                                                    .fitWidth,
+                                                                child: SizedBox(
+                                                                  width: size
+                                                                      .width,
+                                                                  child:
+                                                                      CachedNetworkImage(
+                                                                    imageUrl:
+                                                                        image
+                                                                            .url,
+                                                                    fit: BoxFit
+                                                                        .fitWidth,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          image.message != ""
+                                                              ? Padding(
+                                                                  padding: const EdgeInsets
+                                                                          .only(
+                                                                      bottom:
+                                                                          20),
+                                                                  child:
+                                                                      DecoratedBox(
+                                                                          decoration:
+                                                                              BoxDecoration(
+                                                                            borderRadius:
+                                                                                BorderRadius.circular(30),
+                                                                            color:
+                                                                                secondaryColor,
+                                                                          ),
+                                                                          child:
+                                                                              Padding(
+                                                                            padding:
+                                                                                const EdgeInsets.all(10),
+                                                                            child:
+                                                                                Text(
+                                                                              image.message,
+                                                                              style: GoogleFonts.rubik(fontSize: 16, fontWeight: FontWeight.w500),
+                                                                            ),
+                                                                          )),
+                                                                )
+                                                              : Container(),
+                                                        ],
+                                                      )),
+                                                ),
+                                                const SizedBox(height: 20),
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    profilePicUrl == ""
+                                                        ? CircleAvatar(
+                                                            radius: 20,
+                                                            backgroundColor:
+                                                                secondaryColor,
+                                                            child: Center(
+                                                                child: Text(
+                                                              "${userName.split(" ")[0][0]}${userName.split(" ")[1][0]}",
+                                                              style: GoogleFonts.rubik(
+                                                                  fontSize: 18,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w700,
+                                                                  color:
+                                                                      termsText),
+                                                            )),
+                                                          )
+                                                        : CircleAvatar(
+                                                            radius: 20,
+                                                            backgroundColor:
+                                                                secondaryColor,
+                                                            backgroundImage:
+                                                                NetworkImage(
+                                                                    profilePicUrl)),
+                                                    Padding(
+                                                      padding: const EdgeInsets
+                                                              .symmetric(
+                                                          horizontal: 10),
+                                                      child: Text(
+                                                        image.uid ==
+                                                                _auth
+                                                                    .currentUser!
+                                                                    .uid
+                                                            ? "You"
+                                                            : userName
+                                                                .split(" ")[0],
+                                                        style:
+                                                            GoogleFonts.rubik(
+                                                          textStyle:
+                                                              const TextStyle(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w600,
+                                                                  fontSize: 20),
                                                         ),
                                                       ),
                                                     ),
-                                                  ),
+                                                    Text(
+                                                      relativedateTime(context)
+                                                          .format(RelativeDateTime(
+                                                              dateTime: DateTime
+                                                                  .now(),
+                                                              other: DateTime
+                                                                  .parse(image
+                                                                      .date_created))),
+                                                      style: GoogleFonts.rubik(
+                                                        textStyle:
+                                                            const TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w400,
+                                                                fontSize: 20,
+                                                                color: Colors
+                                                                    .white60),
+                                                      ),
+                                                    )
+                                                  ],
                                                 ),
-                                                image.desc != ""
-                                                    ? Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                    .only(
-                                                                bottom: 20),
-                                                        child: DecoratedBox(
-                                                            decoration:
-                                                                BoxDecoration(
-                                                              borderRadius:
-                                                                  BorderRadius
-                                                                      .circular(
-                                                                          30),
-                                                              color:
-                                                                  secondaryColor,
-                                                            ),
-                                                            child: Padding(
-                                                              padding:
-                                                                  const EdgeInsets
-                                                                      .all(10),
-                                                              child: Text(
-                                                                image.desc,
-                                                                style: GoogleFonts.rubik(
-                                                                    fontSize:
-                                                                        16,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .w500),
-                                                              ),
-                                                            )),
-                                                      )
-                                                    : Container(),
                                               ],
-                                            )),
-                                      ),
-                                      const SizedBox(height: 20),
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          const CircleAvatar(
-                                            radius: 20,
-                                            backgroundColor: white,
-                                          ),
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 10),
-                                            child: Text(
-                                              image.userName.split(" ")[0],
-                                              style: GoogleFonts.rubik(
-                                                textStyle: const TextStyle(
-                                                    fontWeight: FontWeight.w600,
-                                                    fontSize: 20),
-                                              ),
-                                            ),
-                                          )
+                                            )
                                         ],
-                                      ),
-                                    ],
-                                  )
-                              ],
-                            )),
+                                      )),
                             Column(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
@@ -619,7 +739,7 @@ class _MainScreenState extends State<MainScreen>
                                           )),
                                     ],
                                   ),
-                                )
+                                ),
                               ],
                             )
                           ],
@@ -631,6 +751,48 @@ class _MainScreenState extends State<MainScreen>
               ),
             ),
           )),
+    );
+  }
+
+  RelativeDateFormat relativedateTime(BuildContext context) {
+    return RelativeDateFormat(
+      Localizations.localeOf(context),
+      localizations: [
+        const RelativeDateLocalization(
+          languageCode: 'en',
+          timeUnitsSingular: [
+            's',
+            'm',
+            'h',
+            'd',
+            'w',
+            'm',
+            'y',
+          ],
+          timeUnitsPlural: [
+            's',
+            'm',
+            'h',
+            'd',
+            'w',
+            'm',
+            'y',
+          ],
+          prepositionPast: '',
+          prepositionFuture: '',
+          atTheMoment: 'now',
+          formatOrderPast: [
+            FormatComponent.value,
+            FormatComponent.unit,
+            FormatComponent.preposition
+          ],
+          formatOrderFuture: [
+            FormatComponent.preposition,
+            FormatComponent.value,
+            FormatComponent.unit,
+          ],
+        )
+      ],
     );
   }
 
@@ -668,7 +830,7 @@ class _MainScreenState extends State<MainScreen>
                     borderRadius: BorderRadius.circular(30),
                     borderSide: BorderSide.none,
                   ),
-                  hintText: "Reply to $currentUser...",
+                  hintText: "Reply to ${userName.split(" ")[0]}...",
                   hintStyle: GoogleFonts.rubik(
                       fontSize: 16, fontWeight: FontWeight.w400),
                   suffixIcon: GestureDetector(
@@ -759,9 +921,25 @@ class _ModalBottomSheetState extends State<ModalBottomSheet>
     });
   }
 
+  Future<void> getContacts() async {
+    final PermissionStatus status = await Permission.contacts.request();
+
+    if (status.isGranted) {
+      final Iterable<Contact> contacts = await ContactsService.getContacts();
+
+      contacts.forEach((contact) {
+        if (contact.phones!.isNotEmpty) {
+          final String name = contact.displayName ?? '';
+          final String phone = contact.phones!.first.value ?? '';
+        }
+      });
+    } else if (status.isDenied) {}
+  }
+
   @override
   void initState() {
     super.initState();
+    getContacts();
     setState(() {
       startTimer();
       _animationController = AnimationController(

@@ -4,3 +4,4 @@ List<CameraDescription> cameras = <CameraDescription>[];
 String mobileNumber = "";
 String verificationId = "";
 String name = "";
+String profileUrl = "";
