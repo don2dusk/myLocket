@@ -1,12 +1,13 @@
 import 'dart:async';
-import 'dart:collection';
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:camera/camera.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:contacts_service/contacts_service.dart';
+import 'package:country_codes/country_codes.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:image/image.dart' as img;
 import 'package:flutter/material.dart';
 import 'package:get/get_core/get_core.dart';
@@ -14,12 +15,10 @@ import 'package:get/get_navigation/get_navigation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:lit_relative_date_time/lit_relative_date_time.dart';
-import 'package:logging/logging.dart';
 import 'package:my_locket/screens/screens.dart';
 import 'package:my_locket/utils/colors.dart';
 import 'package:my_locket/globals.dart' as globals;
 import 'package:permission_handler/permission_handler.dart';
-import 'dart:developer' as developer;
 
 class User {
   final String uid;
@@ -892,6 +891,11 @@ class _ModalBottomSheetState extends State<ModalBottomSheet>
   late Timer timer;
   late AnimationController _animationController;
   late Animation<double> _animation;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  FirebaseFirestore users = FirebaseFirestore.instance;
+  List<String> contactsList = [];
+  List<String> phoneNumbers = [];
+  List<String> commonContacts = [];
   int namesIndex = 0;
   List<String> names = [
     "family",
@@ -923,16 +927,50 @@ class _ModalBottomSheetState extends State<ModalBottomSheet>
 
   Future<void> getContacts() async {
     final PermissionStatus status = await Permission.contacts.request();
+    await CountryCodes.init();
+    final CountryDetails details = CountryCodes.detailsForLocale();
 
     if (status.isGranted) {
       final Iterable<Contact> contacts = await ContactsService.getContacts();
-
       contacts.forEach((contact) {
         if (contact.phones!.isNotEmpty) {
-          final String name = contact.displayName ?? '';
-          final String phone = contact.phones!.first.value ?? '';
+          final String phoneNum =
+              contact.phones!.first.value!.replaceAll(" ", "");
+          if (phoneNum.startsWith("0")) {
+            contactsList.add("+234${phoneNum.substring(1)}");
+          } else {
+            contactsList.add(phoneNum);
+          }
         }
       });
+
+      await users
+          .collection('users')
+          .where("phoneNumber", isNull: false)
+          .get()
+          .then((querySnapshot) {
+        for (var snapshot in querySnapshot.docs) {
+          var numb = snapshot['phoneNumber'];
+          phoneNumbers.add(numb);
+        }
+      });
+
+      Set commonNumbers =
+          contactsList.toSet().intersection((phoneNumbers.toSet()));
+      if (commonNumbers.isNotEmpty) {
+        for (var n in commonNumbers) {
+          await users
+              .collection('users')
+              .where("phoneNumber", isEqualTo: n)
+              .get()
+              .then((docSnapshot) {
+            var snapshot = docSnapshot.docs.first;
+            var id = snapshot.id;
+            commonContacts.add(id);
+          });
+        }
+      }
+      print(commonContacts);
     } else if (status.isDenied) {}
   }
 
@@ -980,7 +1018,7 @@ class _ModalBottomSheetState extends State<ModalBottomSheet>
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Text(
-                "3 out of 20 friends",
+                "0 out of ${commonContacts.length} friends",
                 style: GoogleFonts.rubik(
                     fontSize: 26, fontWeight: FontWeight.w700, color: white),
               ),

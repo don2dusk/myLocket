@@ -32,6 +32,7 @@ dependencies:
   circle_flags: ^1.0.4
   cloud_firestore: ^4.4.4
   contacts_service: ^0.6.3
+  country_codes: ^2.2.0
   cupertino_icons: ^1.0.2
   firebase_auth: ^4.2.10
   firebase_core: ^2.7.1
