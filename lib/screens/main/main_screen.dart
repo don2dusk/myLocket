@@ -70,6 +70,8 @@ class _MainScreenState extends State<MainScreen>
   String userName = "";
   String profilePicUrl = "";
   String currentUser = "";
+  List<String> contactsList = [];
+  List<String> phoneNumbers = [];
 
   late AnimationController animationController;
   late Animation<double> animation;
@@ -113,10 +115,62 @@ class _MainScreenState extends State<MainScreen>
     currentUser = data['name'];
   }
 
+  Future<void> getContacts() async {
+    final PermissionStatus status = await Permission.contacts.request();
+    await CountryCodes.init();
+
+    if (status.isGranted) {
+      final Iterable<Contact> contacts = await ContactsService.getContacts();
+      contacts.forEach((contact) {
+        if (contact.phones!.isNotEmpty) {
+          final String phoneNum =
+              contact.phones!.first.value!.replaceAll(" ", "");
+          if (phoneNum.startsWith("0")) {
+            contactsList.add("+234${phoneNum.substring(1)}");
+          } else {
+            contactsList.add(phoneNum);
+          }
+        }
+      });
+
+      await users
+          .collection('users')
+          .where("phoneNumber", isNull: false)
+          .get()
+          .then((querySnapshot) {
+        for (var snapshot in querySnapshot.docs) {
+          var numb = snapshot['phoneNumber'];
+          phoneNumbers.add(numb);
+        }
+      });
+
+      for (var n in contactsList
+          .toSet()
+          .intersection((phoneNumbers.toSet()))
+          .toList()) {
+        for (var contact in contacts) {
+          if (contact.phones!.isNotEmpty) {
+            String phoneNum = contact.phones!.first.value!.replaceAll(" ", "");
+            if (n ==
+                (phoneNum.startsWith("0")
+                    ? "+234${phoneNum.substring(1)}"
+                    : phoneNum)) {
+              Map<String, String> con = {};
+              con['name'] = contact.displayName!;
+              con['number'] = n;
+              globals.commonContactsList.add(con);
+            }
+          }
+        }
+      }
+      print(globals.commonContactsList);
+    } else if (status.isDenied) {}
+  }
+
   @override
   void initState() {
     super.initState();
-
+    getContacts();
     getCurrentUserfname();
     animationController = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 500));
@@ -140,6 +194,8 @@ class _MainScreenState extends State<MainScreen>
   void dispose() {
     _controller.dispose();
     animationController.dispose();
+    _pageViewController.dispose();
+    _secondPageController.dispose();
     super.dispose();
   }
 
@@ -893,9 +949,7 @@ class _ModalBottomSheetState extends State<ModalBottomSheet>
   late Animation<double> _animation;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   FirebaseFirestore users = FirebaseFirestore.instance;
-  List<String> contactsList = [];
-  List<String> phoneNumbers = [];
-  List<String> commonContacts = [];
+
   int namesIndex = 0;
   List<String> names = [
     "family",
@@ -925,59 +979,9 @@ class _ModalBottomSheetState extends State<ModalBottomSheet>
     });
   }
 
-  Future<void> getContacts() async {
-    final PermissionStatus status = await Permission.contacts.request();
-    await CountryCodes.init();
-    final CountryDetails details = CountryCodes.detailsForLocale();
-
-    if (status.isGranted) {
-      final Iterable<Contact> contacts = await ContactsService.getContacts();
-      contacts.forEach((contact) {
-        if (contact.phones!.isNotEmpty) {
-          final String phoneNum =
-              contact.phones!.first.value!.replaceAll(" ", "");
-          if (phoneNum.startsWith("0")) {
-            contactsList.add("+234${phoneNum.substring(1)}");
-          } else {
-            contactsList.add(phoneNum);
-          }
-        }
-      });
-
-      await users
-          .collection('users')
-          .where("phoneNumber", isNull: false)
-          .get()
-          .then((querySnapshot) {
-        for (var snapshot in querySnapshot.docs) {
-          var numb = snapshot['phoneNumber'];
-          phoneNumbers.add(numb);
-        }
-      });
-
-      Set commonNumbers =
-          contactsList.toSet().intersection((phoneNumbers.toSet()));
-      if (commonNumbers.isNotEmpty) {
-        for (var n in commonNumbers) {
-          await users
-              .collection('users')
-              .where("phoneNumber", isEqualTo: n)
-              .get()
-              .then((docSnapshot) {
-            var snapshot = docSnapshot.docs.first;
-            var id = snapshot.id;
-            commonContacts.add(id);
-          });
-        }
-      }
-      print(commonContacts);
-    } else if (status.isDenied) {}
-  }
-
   @override
   void initState() {
     super.initState();
-    getContacts();
     setState(() {
       startTimer();
       _animationController = AnimationController(
@@ -988,6 +992,13 @@ class _ModalBottomSheetState extends State<ModalBottomSheet>
           Tween<double>(begin: 0, end: 1).animate(_animationController);
     });
     _animationController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    timer.cancel();
+    super.dispose();
   }
 
   @override
@@ -1018,7 +1029,7 @@ class _ModalBottomSheetState extends State<ModalBottomSheet>
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Text(
-                "0 out of ${commonContacts.length} friends",
+                "0 out of ${globals.commonContactsList.length} friends",
                 style: GoogleFonts.rubik(
                     fontSize: 26, fontWeight: FontWeight.w700, color: white),
               ),

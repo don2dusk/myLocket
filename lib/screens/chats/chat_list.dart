@@ -4,7 +4,7 @@ import 'package:get/get_navigation/get_navigation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:my_locket/screens/screens.dart';
 
-import '../utils/colors.dart';
+import '../../utils/colors.dart';
 
 class CustomChat extends StatelessWidget {
   const CustomChat({super.key, required this.name, required this.pfp});

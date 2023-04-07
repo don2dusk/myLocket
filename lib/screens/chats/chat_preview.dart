@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../utils/colors.dart';
+import '../../utils/colors.dart';
 
 class ChatPreview extends StatefulWidget {
   const ChatPreview({super.key, required this.userName, required this.pfp});
