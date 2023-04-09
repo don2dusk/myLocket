@@ -6,4 +6,5 @@ String verificationId = "";
 String name = "";
 String profileUrl = "";
 String countryCode = "";
-List commonContactsList = <Map<String, String>>[];
+List commonContactsList = [];
+List sentRequestList = [];

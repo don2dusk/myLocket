@@ -7,6 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:contacts_service/contacts_service.dart';
 import 'package:country_codes/country_codes.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 
 import 'package:image/image.dart' as img;
 import 'package:flutter/material.dart';
@@ -69,12 +70,19 @@ class _MainScreenState extends State<MainScreen>
   var imageItems = [];
   String userName = "";
   String profilePicUrl = "";
-  String currentUser = "";
   List<String> contactsList = [];
   List<String> phoneNumbers = [];
+  String requestStatus = "";
 
   late AnimationController animationController;
   late Animation<double> animation;
+
+  void removeItemsfromcommonContacts(List list1, List<List> otherLists) {
+    setState(() {
+      list1
+          .removeWhere((item) => otherLists.any((list) => list.contains(item)));
+    });
+  }
 
   Future<void> getUsers() async {
     await users
@@ -108,11 +116,23 @@ class _MainScreenState extends State<MainScreen>
     });
   }
 
-  void getCurrentUserfname() async {
-    DocumentSnapshot docSnapshot =
-        await users.collection('users').doc(_auth.currentUser!.uid).get();
-    var data = docSnapshot.data() as Map<String, dynamic>;
-    currentUser = data['name'];
+  Future<void> getStatus(String phoneNumber) async {
+    await users
+        .collection('friendRequests')
+        .where('sender_id', isEqualTo: _auth.currentUser!.uid)
+        .where('receiver_id',
+            isEqualTo: await users
+                .collection('users')
+                .where('phoneNumber', isEqualTo: phoneNumber)
+                .get()
+                .then((snapshot) => snapshot.docs.first.id))
+        .get()
+        .then((snapshot) {
+      var data = snapshot.docs.first;
+      setState(() {
+        requestStatus = data['status'];
+      });
+    });
   }
 
   Future<void> getContacts() async {
@@ -158,20 +178,28 @@ class _MainScreenState extends State<MainScreen>
               Map<String, String> con = {};
               con['name'] = contact.displayName!;
               con['number'] = n;
+
               globals.commonContactsList.add(con);
+
+              await getStatus(n);
+              if (requestStatus == "pending") {
+                globals.sentRequestList.add(con);
+              }
             }
           }
         }
       }
-      print(globals.commonContactsList);
     } else if (status.isDenied) {}
   }
 
   @override
   void initState() {
     super.initState();
-    getContacts();
-    getCurrentUserfname();
+
+    getContacts().then((value) {
+      removeItemsfromcommonContacts(
+          globals.commonContactsList, [globals.sentRequestList]);
+    });
     animationController = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 500));
     animation =
@@ -949,6 +977,7 @@ class _ModalBottomSheetState extends State<ModalBottomSheet>
   late Animation<double> _animation;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   FirebaseFirestore users = FirebaseFirestore.instance;
+  bool isLoading = true;
 
   int namesIndex = 0;
   List<String> names = [
@@ -960,7 +989,7 @@ class _ModalBottomSheetState extends State<ModalBottomSheet>
   ];
 
   void startTimer() {
-    timer = Timer.periodic(const Duration(seconds: 2), (timer) {
+    timer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (namesIndex < 4) {
         setState(() {
           namesIndex++;
@@ -985,7 +1014,7 @@ class _ModalBottomSheetState extends State<ModalBottomSheet>
     setState(() {
       startTimer();
       _animationController = AnimationController(
-        duration: const Duration(milliseconds: 750),
+        duration: const Duration(milliseconds: 500),
         vsync: this,
       );
       _animation =
@@ -1013,70 +1042,316 @@ class _ModalBottomSheetState extends State<ModalBottomSheet>
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        child: Column(
+        child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 30),
+            child: Container(
+              width: 50,
+              height: 7,
+              decoration: BoxDecoration(
+                color: Colors.grey[800],
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text(
+              "0 out of 20 friends",
+              style: GoogleFonts.rubik(
+                  fontSize: 26, fontWeight: FontWeight.w700, color: white),
+            ),
+          ),
+          SizedBox(
+              height: 25,
+              child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text("Add your  ",
+                        style: GoogleFonts.rubik(
+                            fontSize: 18,
+                            color: termsText,
+                            fontWeight: FontWeight.w600)),
+                    FadeTransition(
+                      opacity: _animation,
+                      child: Text("${names[namesIndex]}  ",
+                          style: GoogleFonts.rubik(
+                              fontSize: 18,
+                              color: primaryColor,
+                              fontWeight: FontWeight.w600)),
+                    ),
+                    namesIndex == 0
+                        ? FadeTransition(
+                            opacity: _animation,
+                            child: Text("👨‍👩‍👧‍👦",
+                                style: GoogleFonts.rubik(fontSize: 18)),
+                          )
+                        : (namesIndex == 3
+                            ? FadeTransition(
+                                opacity: _animation,
+                                child: Text("👧🏾👦🏻",
+                                    style: GoogleFonts.rubik(fontSize: 18)),
+                              )
+                            : (namesIndex == 4
+                                ? FadeTransition(
+                                    opacity: _animation,
+                                    child: Text("❤️",
+                                        style: GoogleFonts.rubik(fontSize: 18)),
+                                  )
+                                : Container()))
+                  ])),
+          const SizedBox(height: 30),
+          Padding(
+            padding: const EdgeInsets.only(top: 20),
+            child: Row(
+              children: [
+                const Icon(Iconsax.people, color: Colors.white70),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Text("Your friends",
+                      style: GoogleFonts.rubik(
+                          fontSize: 16,
+                          color: Colors.white70,
+                          fontWeight: FontWeight.w600)),
+                )
+              ],
+            ),
+          ),
+          globals.sentRequestList.isNotEmpty
+              ? Padding(
+                  padding: const EdgeInsets.only(top: 20),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.check_circle_rounded,
+                          color: Colors.white70),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: Text("Sent requests",
+                            style: GoogleFonts.rubik(
+                                fontSize: 16,
+                                color: Colors.white70,
+                                fontWeight: FontWeight.w600)),
+                      )
+                    ],
+                  ),
+                )
+              : Container(),
+          globals.sentRequestList.isNotEmpty
+              ? ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: globals.sentRequestList.length,
+                  itemBuilder: (context, int index) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      child: friendsListItems(
+                          "",
+                          "${globals.sentRequestList[index]['name'].split(" ")[0][0]}${globals.sentRequestList[index]['name'].split(" ")[1][0] ?? ""}",
+                          globals.sentRequestList[index]['name'],
+                          globals.sentRequestList[index]['number'], () async {
+                        await users
+                            .collection('friendRequests')
+                            .doc(
+                                '${_auth.currentUser!.phoneNumber}-${globals.sentRequestList[index]['number']}')
+                            .delete();
+                        globals.commonContactsList.add({
+                          'name': globals.sentRequestList[index]['name'],
+                          'number': globals.sentRequestList[index]['number'],
+                        });
+                        globals.sentRequestList.removeAt(index);
+                      }, false),
+                    );
+                  },
+                )
+              : Container(),
+          globals.commonContactsList.isNotEmpty
+              ? Padding(
+                  padding: const EdgeInsets.only(top: 20),
+                  child: Row(
+                    children: [
+                      const Icon(CupertinoIcons.sparkles,
+                          color: Colors.white70),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: Text("Suggestions",
+                            style: GoogleFonts.rubik(
+                                fontSize: 16,
+                                color: Colors.white70,
+                                fontWeight: FontWeight.w600)),
+                      )
+                    ],
+                  ),
+                )
+              : Container(),
+          globals.commonContactsList.isNotEmpty
+              ? ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: globals.commonContactsList.length,
+                  itemBuilder: (context, int index) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      child: friendsListItems(
+                          "",
+                          "${globals.commonContactsList[index]['name'].split(" ")[0][0]}${globals.commonContactsList[index]['name'].split(" ")[1][0] ?? ""}",
+                          globals.commonContactsList[index]['name'],
+                          globals.commonContactsList[index]['number'], () {
+                        setState(() {
+                          isLoading = false;
+                        });
+                        Future.delayed(
+                          const Duration(seconds: 2),
+                        ).then((value) async {
+                          setState(() {
+                            isLoading = true;
+                          });
+
+                          await users
+                              .collection('friendRequests')
+                              .doc(
+                                  '${_auth.currentUser!.phoneNumber}-${globals.commonContactsList[index]['number']}')
+                              .set({
+                            'sender_id': _auth.currentUser!.uid,
+                            'receiver_id': await users
+                                .collection('users')
+                                .where('phoneNumber',
+                                    isEqualTo: globals.commonContactsList[index]
+                                        ['number'])
+                                .get()
+                                .then((snapshot) {
+                              var data = snapshot.docs.first.id;
+                              return data;
+                            }),
+                            'status': 'pending',
+                          });
+
+                          globals.sentRequestList.add({
+                            'name': globals.commonContactsList[index]['name'],
+                            'number': globals.commonContactsList[index]
+                                ['number'],
+                          });
+                          globals.commonContactsList.removeAt(index);
+                        });
+                      }, true),
+                    );
+                  },
+                )
+              : Container(),
+        ]),
+      ),
+    );
+  }
+
+  Widget friendsListItems(String pfpLink, String pfpAlt, String name,
+      String phoneNumber, void Function() onClick, bool isSuggestion) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Stack(
+          alignment: Alignment.center,
           children: [
-            Padding(
-              padding: const EdgeInsets.only(bottom: 30),
+            CircleAvatar(
+              radius: 33,
+              backgroundColor: secondaryColor,
               child: Container(
-                width: 50,
-                height: 7,
+                height: 58,
                 decoration: BoxDecoration(
-                  color: Colors.grey[800],
-                  borderRadius: BorderRadius.circular(10),
+                  color: backgroundColor,
+                  shape: BoxShape.circle,
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Text(
-                "0 out of ${globals.commonContactsList.length} friends",
-                style: GoogleFonts.rubik(
-                    fontSize: 26, fontWeight: FontWeight.w700, color: white),
-              ),
-            ),
-            SizedBox(
-                height: 25,
-                child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text("Add your  ",
-                          style: GoogleFonts.rubik(
-                              fontSize: 18,
-                              color: termsText,
-                              fontWeight: FontWeight.w600)),
-                      FadeTransition(
-                        opacity: _animation,
-                        child: Text("${names[namesIndex]}  ",
-                            style: GoogleFonts.rubik(
-                                fontSize: 18,
-                                color: primaryColor,
-                                fontWeight: FontWeight.w600)),
-                      ),
-                      namesIndex == 0
-                          ? FadeTransition(
-                              opacity: _animation,
-                              child: Text("👨‍👩‍👧‍👦",
-                                  style: GoogleFonts.rubik(fontSize: 18)),
-                            )
-                          : (namesIndex == 3
-                              ? FadeTransition(
-                                  opacity: _animation,
-                                  child: Text("👧🏾👦🏻",
-                                      style: GoogleFonts.rubik(fontSize: 18)),
-                                )
-                              : (namesIndex == 4
-                                  ? FadeTransition(
-                                      opacity: _animation,
-                                      child: Text("❤️",
-                                          style:
-                                              GoogleFonts.rubik(fontSize: 18)),
-                                    )
-                                  : Container()))
-                    ])),
+            pfpLink.isNotEmpty
+                ? CircleAvatar(
+                    radius: 25,
+                    backgroundColor: secondaryColor,
+                    backgroundImage: NetworkImage(pfpLink),
+                  )
+                : CircleAvatar(
+                    radius: 25,
+                    backgroundColor: secondaryColor,
+                    child: Text(pfpAlt,
+                        style: GoogleFonts.rubik(
+                            fontSize: 20,
+                            color: termsText,
+                            fontWeight: FontWeight.w600)),
+                  ),
           ],
         ),
-      ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 15),
+          child: SizedBox(
+            height: 50,
+            child: Stack(
+              children: [
+                Align(
+                  alignment: Alignment.topLeft,
+                  child: Text(
+                    name,
+                    style: GoogleFonts.rubik(
+                        fontSize: 18,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+                phoneNumber.isNotEmpty
+                    ? Align(
+                        alignment: Alignment.bottomLeft,
+                        child: Text(
+                          phoneNumber,
+                          style: GoogleFonts.rubik(
+                              fontSize: 14,
+                              color: Colors.white60,
+                              fontWeight: FontWeight.w500),
+                        ),
+                      )
+                    : Container()
+              ],
+            ),
+          ),
+        ),
+        Expanded(
+          child: Align(
+              alignment: Alignment.centerRight,
+              child: isSuggestion
+                  ? TextButton(
+                      onPressed: onClick,
+                      style: TextButton.styleFrom(
+                        backgroundColor: primaryColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 12, horizontal: 20),
+                      ),
+                      child: !isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: black,
+                                strokeWidth: 2,
+                              ))
+                          : SizedBox(
+                              height: 20,
+                              child: Text(
+                                "+ Add",
+                                style: GoogleFonts.rubik(
+                                    color: black,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 18),
+                              ),
+                            ),
+                    )
+                  : GestureDetector(
+                      onTap: onClick,
+                      child: CircleAvatar(
+                        radius: 18,
+                        backgroundColor: secondaryColor,
+                        child: const Icon(Icons.close, color: white, size: 20),
+                      ),
+                    )),
+        ),
+      ]),
     );
   }
 }
