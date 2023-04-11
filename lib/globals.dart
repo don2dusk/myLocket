@@ -8,3 +8,4 @@ String profileUrl = "";
 String countryCode = "";
 List commonContactsList = [];
 List sentRequestList = [];
+List receivedRequestList = [];

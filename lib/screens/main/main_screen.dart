@@ -98,20 +98,12 @@ class _MainScreenState extends State<MainScreen>
     });
   }
 
-  void getuserName(String uid) async {
+  void getuserInfo(String uid) async {
     DocumentSnapshot docSnapshot =
         await users.collection('users').doc(uid).get();
     var data = docSnapshot.data() as Map<String, dynamic>;
     setState(() {
       userName = data['name'];
-    });
-  }
-
-  void getProfileUrl(String uid) async {
-    DocumentSnapshot docSnapshot =
-        await users.collection('users').doc(uid).get();
-    var data = docSnapshot.data() as Map<String, dynamic>;
-    setState(() {
       profilePicUrl = data['profileUrl'];
     });
   }
@@ -137,7 +129,6 @@ class _MainScreenState extends State<MainScreen>
 
   Future<void> getContacts() async {
     final PermissionStatus status = await Permission.contacts.request();
-    await CountryCodes.init();
 
     if (status.isGranted) {
       final Iterable<Contact> contacts = await ContactsService.getContacts();
@@ -192,13 +183,59 @@ class _MainScreenState extends State<MainScreen>
     } else if (status.isDenied) {}
   }
 
+  Future<void> receiveRequests() async {
+    final contacts = await ContactsService.getContacts();
+
+    await users
+        .collection('friendRequests')
+        .where('receiver_id', isEqualTo: _auth.currentUser!.uid)
+        .where('status', isEqualTo: 'pending')
+        .get()
+        .then((snapshot) async {
+      for (var data in snapshot.docs) {
+        String receivedRequestName = "";
+        String receivedRequestPhone = "";
+        await users
+            .collection('users')
+            .doc(data['sender_id'])
+            .get()
+            .then((snapshot) {
+          var data = snapshot.data() as Map<String, dynamic>;
+          setState(() {
+            receivedRequestPhone = data['phoneNumber'];
+          });
+
+          for (var contact in contacts) {
+            if (contact.phones!.isNotEmpty) {
+              String phoneNum =
+                  contact.phones!.first.value!.replaceAll(" ", "");
+
+              if ((phoneNum.startsWith("0")
+                      ? "+234${phoneNum.substring(1)}"
+                      : phoneNum) ==
+                  receivedRequestPhone) {
+                setState(() {
+                  receivedRequestName = contact.displayName ?? "";
+                });
+              }
+            }
+          }
+          Map<String, String> con = {};
+          con['name'] = receivedRequestName;
+          con['number'] = receivedRequestPhone;
+          globals.receivedRequestList.add(con);
+        });
+      }
+    });
+  }
+
   @override
   void initState() {
     super.initState();
-
     getContacts().then((value) {
-      removeItemsfromcommonContacts(
-          globals.commonContactsList, [globals.sentRequestList]);
+      receiveRequests();
+      removeItemsfromcommonContacts(globals.commonContactsList,
+          [globals.sentRequestList, globals.receivedRequestList]);
     });
     animationController = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 500));
@@ -207,8 +244,7 @@ class _MainScreenState extends State<MainScreen>
     animationController.reset();
     animationController.forward();
     getUsers().then((value) async {
-      getuserName(imageItems[0].uid);
-      getProfileUrl(imageItems[0].uid);
+      getuserInfo(imageItems[0].uid);
     });
     _pageViewController = PageController(keepPage: false);
     _secondPageController = PageController(keepPage: false);
@@ -438,7 +474,7 @@ class _MainScreenState extends State<MainScreen>
                         setState(() {
                           mainPageIndex = value;
                           getUsers();
-                          getuserName(imageItems[0].uid);
+                          getuserInfo(imageItems[0].uid);
                           animationController.reset();
                           animationController.forward();
                         });
@@ -578,8 +614,7 @@ class _MainScreenState extends State<MainScreen>
                                         scrollDirection: Axis.vertical,
                                         onPageChanged: (value) {
                                           getUsers();
-                                          getuserName(imageItems[value].uid);
-                                          getProfileUrl(imageItems[value].uid);
+                                          getuserInfo(imageItems[value].uid);
                                           setState(() {
                                             currentPageIndex = value;
                                           });
@@ -1103,7 +1138,7 @@ class _ModalBottomSheetState extends State<ModalBottomSheet>
                   ])),
           const SizedBox(height: 30),
           Padding(
-            padding: const EdgeInsets.only(top: 20),
+            padding: const EdgeInsets.only(top: 20, bottom: 20),
             child: Row(
               children: [
                 const Icon(Iconsax.people, color: Colors.white70),
@@ -1120,7 +1155,7 @@ class _ModalBottomSheetState extends State<ModalBottomSheet>
           ),
           globals.sentRequestList.isNotEmpty
               ? Padding(
-                  padding: const EdgeInsets.only(top: 20),
+                  padding: const EdgeInsets.only(top: 20, bottom: 20),
                   child: Row(
                     children: [
                       const Icon(Icons.check_circle_rounded,
@@ -1143,7 +1178,7 @@ class _ModalBottomSheetState extends State<ModalBottomSheet>
                   itemCount: globals.sentRequestList.length,
                   itemBuilder: (context, int index) {
                     return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
                       child: friendsListItems(
                           "",
                           "${globals.sentRequestList[index]['name'].split(" ")[0][0]}${globals.sentRequestList[index]['name'].split(" ")[1][0] ?? ""}",
@@ -1166,7 +1201,7 @@ class _ModalBottomSheetState extends State<ModalBottomSheet>
               : Container(),
           globals.commonContactsList.isNotEmpty
               ? Padding(
-                  padding: const EdgeInsets.only(top: 20),
+                  padding: const EdgeInsets.only(top: 20, bottom: 20),
                   child: Row(
                     children: [
                       const Icon(CupertinoIcons.sparkles,
@@ -1189,7 +1224,7 @@ class _ModalBottomSheetState extends State<ModalBottomSheet>
                   itemCount: globals.commonContactsList.length,
                   itemBuilder: (context, int index) {
                     return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
                       child: friendsListItems(
                           "",
                           "${globals.commonContactsList[index]['name'].split(" ")[0][0]}${globals.commonContactsList[index]['name'].split(" ")[1][0] ?? ""}",
@@ -1243,115 +1278,112 @@ class _ModalBottomSheetState extends State<ModalBottomSheet>
 
   Widget friendsListItems(String pfpLink, String pfpAlt, String name,
       String phoneNumber, void Function() onClick, bool isSuggestion) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            CircleAvatar(
-              radius: 33,
-              backgroundColor: secondaryColor,
-              child: Container(
-                height: 58,
-                decoration: BoxDecoration(
-                  color: backgroundColor,
-                  shape: BoxShape.circle,
-                ),
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Stack(
+        alignment: Alignment.center,
+        children: [
+          CircleAvatar(
+            radius: 33,
+            backgroundColor: secondaryColor,
+            child: Container(
+              height: 58,
+              decoration: BoxDecoration(
+                color: backgroundColor,
+                shape: BoxShape.circle,
               ),
             ),
-            pfpLink.isNotEmpty
-                ? CircleAvatar(
-                    radius: 25,
-                    backgroundColor: secondaryColor,
-                    backgroundImage: NetworkImage(pfpLink),
-                  )
-                : CircleAvatar(
-                    radius: 25,
-                    backgroundColor: secondaryColor,
-                    child: Text(pfpAlt,
-                        style: GoogleFonts.rubik(
-                            fontSize: 20,
-                            color: termsText,
-                            fontWeight: FontWeight.w600)),
-                  ),
-          ],
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 15),
-          child: SizedBox(
-            height: 50,
-            child: Stack(
-              children: [
-                Align(
-                  alignment: Alignment.topLeft,
-                  child: Text(
-                    name,
-                    style: GoogleFonts.rubik(
-                        fontSize: 18,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600),
-                  ),
+          ),
+          pfpLink.isNotEmpty
+              ? CircleAvatar(
+                  radius: 25,
+                  backgroundColor: secondaryColor,
+                  backgroundImage: NetworkImage(pfpLink),
+                )
+              : CircleAvatar(
+                  radius: 25,
+                  backgroundColor: secondaryColor,
+                  child: Text(pfpAlt,
+                      style: GoogleFonts.rubik(
+                          fontSize: 20,
+                          color: termsText,
+                          fontWeight: FontWeight.w600)),
                 ),
-                phoneNumber.isNotEmpty
-                    ? Align(
-                        alignment: Alignment.bottomLeft,
-                        child: Text(
-                          phoneNumber,
-                          style: GoogleFonts.rubik(
-                              fontSize: 14,
-                              color: Colors.white60,
-                              fontWeight: FontWeight.w500),
-                        ),
-                      )
-                    : Container()
-              ],
-            ),
+        ],
+      ),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 15),
+        child: SizedBox(
+          height: 50,
+          child: Stack(
+            children: [
+              Align(
+                alignment: Alignment.topLeft,
+                child: Text(
+                  name,
+                  style: GoogleFonts.rubik(
+                      fontSize: 18,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600),
+                ),
+              ),
+              phoneNumber.isNotEmpty
+                  ? Align(
+                      alignment: Alignment.bottomLeft,
+                      child: Text(
+                        phoneNumber,
+                        style: GoogleFonts.rubik(
+                            fontSize: 14,
+                            color: Colors.white60,
+                            fontWeight: FontWeight.w500),
+                      ),
+                    )
+                  : Container()
+            ],
           ),
         ),
-        Expanded(
-          child: Align(
-              alignment: Alignment.centerRight,
-              child: isSuggestion
-                  ? TextButton(
-                      onPressed: onClick,
-                      style: TextButton.styleFrom(
-                        backgroundColor: primaryColor,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 12, horizontal: 20),
+      ),
+      Expanded(
+        child: Align(
+            alignment: Alignment.centerRight,
+            child: isSuggestion
+                ? TextButton(
+                    onPressed: onClick,
+                    style: TextButton.styleFrom(
+                      backgroundColor: primaryColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
                       ),
-                      child: !isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                color: black,
-                                strokeWidth: 2,
-                              ))
-                          : SizedBox(
-                              height: 20,
-                              child: Text(
-                                "+ Add",
-                                style: GoogleFonts.rubik(
-                                    color: black,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 18),
-                              ),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 12, horizontal: 20),
+                    ),
+                    child: !isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: black,
+                              strokeWidth: 2,
+                            ))
+                        : SizedBox(
+                            height: 20,
+                            child: Text(
+                              "+ Add",
+                              style: GoogleFonts.rubik(
+                                  color: black,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 18),
                             ),
-                    )
-                  : GestureDetector(
-                      onTap: onClick,
-                      child: CircleAvatar(
-                        radius: 18,
-                        backgroundColor: secondaryColor,
-                        child: const Icon(Icons.close, color: white, size: 20),
-                      ),
-                    )),
-        ),
-      ]),
-    );
+                          ),
+                  )
+                : GestureDetector(
+                    onTap: onClick,
+                    child: CircleAvatar(
+                      radius: 18,
+                      backgroundColor: secondaryColor,
+                      child: const Icon(Icons.close, color: white, size: 20),
+                    ),
+                  )),
+      ),
+    ]);
   }
 }
