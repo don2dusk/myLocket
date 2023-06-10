@@ -8,6 +8,7 @@ import 'package:contacts_service/contacts_service.dart';
 import 'package:country_codes/country_codes.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:get/get.dart';
 
 import 'package:image/image.dart' as img;
 import 'package:flutter/material.dart';
@@ -120,10 +121,13 @@ class _MainScreenState extends State<MainScreen>
                 .then((snapshot) => snapshot.docs.first.id))
         .get()
         .then((snapshot) {
-      var data = snapshot.docs.first;
-      setState(() {
-        requestStatus = data['status'];
-      });
+      if (snapshot.isBlank!) {
+      } else {
+        var data = snapshot.docs.first;
+        setState(() {
+          requestStatus = data['status'];
+        });
+      }
     });
   }
 
@@ -132,10 +136,18 @@ class _MainScreenState extends State<MainScreen>
 
     if (status.isGranted) {
       final Iterable<Contact> contacts = await ContactsService.getContacts();
-      contacts.forEach((contact) {
+      contacts.forEach((contact) async {
         if (contact.phones!.isNotEmpty) {
           final String phoneNum =
               contact.phones!.first.value!.replaceAll(" ", "");
+          String userPhoneNum = await users
+              .collection('users')
+              .doc(_auth.currentUser!.uid)
+              .get()
+              .then((snapshot) {
+            var data = snapshot.data() as Map<String, dynamic>;
+            return data['phoneNumber'];
+          });
           if (phoneNum.startsWith("0")) {
             contactsList.add("+234${phoneNum.substring(1)}");
           } else {
