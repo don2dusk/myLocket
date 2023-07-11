@@ -1,10 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:my_locket/model/firestore.dart';
 import 'package:my_locket/screens/screens.dart';
-import 'package:my_locket/globals.dart' as globals;
 import '../../utils/colors.dart';
 
 class SignupPage extends StatefulWidget {
@@ -15,22 +14,12 @@ class SignupPage extends StatefulWidget {
 }
 
 class _SignupPageState extends State<SignupPage> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  GetStorage userStorage = GetStorage();
+  Users userInstance = const Users();
+  // final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final _formKey = GlobalKey<FormState>();
   String fullName = "";
-
-  Future<void> addName(String name) async {
-    final user = _auth.currentUser;
-    if (user != null) {
-      final userRef = firestore.collection('users').doc(user.uid);
-      await userRef.update({
-        'name': name,
-        'profileUrl': "",
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +58,9 @@ class _SignupPageState extends State<SignupPage> {
                         onPressed: () {
                           if (_formKey.currentState!.validate()) {
                             _formKey.currentState!.save();
-                            addName(fullName);
+                            userInstance.updateInfo(Users(name: fullName));
+                            userStorage.write('name', fullName);
+                            userStorage.write('profileUrl', "");
                             Get.offAll(() => const MainScreen());
                           }
                         },

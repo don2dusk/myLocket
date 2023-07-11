@@ -6,9 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get_core/get_core.dart';
 import 'package:get/get_navigation/get_navigation.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:my_locket/screens/screens.dart';
-import 'package:my_locket/globals.dart' as globals;
+
+import 'package:my_locket/model/firestore.dart';
 
 import '../../utils/colors.dart';
 
@@ -26,10 +28,11 @@ class _PhoneVerificationState extends State<PhoneVerification>
   late Animation<double> _animation;
   FirebaseAuth auth = FirebaseAuth.instance;
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
-  late QuerySnapshot querySnapshot;
+  Users userInstance = Users();
   final _formKey = GlobalKey<FormState>();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   String code = "";
+  GetStorage userStorage = GetStorage();
 
   @override
   void initState() {
@@ -163,29 +166,58 @@ class _PhoneVerificationState extends State<PhoneVerification>
                             if (_formKey.currentState!.validate()) {
                               _formKey.currentState!.save();
                               try {
+                                Users user = Users(
+                                    name: "",
+                                    profileUrl: "",
+                                    phoneNumber:
+                                        userStorage.read('phoneNumber'));
+
                                 PhoneAuthCredential credential =
                                     PhoneAuthProvider.credential(
-                                        verificationId: globals.verificationId,
+                                        verificationId:
+                                            userStorage.read('verificationId'),
                                         smsCode: code);
 
                                 await auth.signInWithCredential(credential);
-                                querySnapshot = await firestore
+                                QuerySnapshot querySnapshot = await firestore
                                     .collection('users')
                                     .where('phoneNumber',
-                                        isEqualTo: globals.mobileNumber)
+                                        isEqualTo:
+                                            userStorage.read('phoneNumber'))
                                     .get();
 
                                 if (querySnapshot.docs.isNotEmpty) {
+                                  userStorage.write(
+                                      'uid', auth.currentUser!.uid);
+                                  userStorage.remove('verificationId');
+
+                                  final ref = firestore
+                                      .collection("users")
+                                      .doc(userStorage.read('uid'))
+                                      .withConverter(
+                                        fromFirestore: Users.fromFirestore,
+                                        toFirestore: (Users user, _) =>
+                                            user.toFirestore(),
+                                      );
+                                  final docSnap = await ref.get();
+                                  final city = docSnap.data();
+                                  userStorage.write('name', city!.name);
+                                  userStorage.write(
+                                      'profileUrl', city.profileUrl);
+
                                   Get.offAll(() => const MainScreen());
                                 } else {
                                   firestore
                                       .collection('users')
+                                      .withConverter(
+                                          fromFirestore: Users.fromFirestore,
+                                          toFirestore: (Users user, options) =>
+                                              user.toFirestore())
                                       .doc(auth.currentUser!.uid)
-                                      .set({
-                                    'name': "",
-                                    'profileUrl': "",
-                                    'phoneNumber': globals.mobileNumber,
-                                  });
+                                      .set(user);
+                                  userStorage.write(
+                                      'uid', auth.currentUser!.uid);
+                                  userStorage.remove('verificationId');
                                   Get.offAll(() => const SignupPage());
                                 }
                               } catch (e) {
@@ -230,11 +262,11 @@ class _PhoneVerificationState extends State<PhoneVerification>
                 onPressed: () async {
                   await auth.verifyPhoneNumber(
                     timeout: const Duration(seconds: 30),
-                    phoneNumber: globals.mobileNumber,
+                    phoneNumber: userStorage.read('phoneNumber'),
                     verificationCompleted: (PhoneAuthCredential credential) {},
                     verificationFailed: (FirebaseAuthException e) {},
                     codeSent: (String verificationId, int? resendToken) {
-                      globals.verificationId = verificationId;
+                      userStorage.write('verificationId', verificationId);
                     },
                     codeAutoRetrievalTimeout: (String verificationId) {},
                   );

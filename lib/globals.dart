@@ -1,11 +1,6 @@
 import 'package:camera/camera.dart';
 
 List<CameraDescription> cameras = <CameraDescription>[];
-String mobileNumber = "";
-String verificationId = "";
-String name = "";
-String profileUrl = "";
-String countryCode = "";
 List commonContactsList = [];
 List sentRequestList = [];
 List receivedRequestList = [];

@@ -5,15 +5,12 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:camera/camera.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:contacts_service/contacts_service.dart';
-import 'package:country_codes/country_codes.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 
 import 'package:image/image.dart' as img;
 import 'package:flutter/material.dart';
-import 'package:get/get_core/get_core.dart';
-import 'package:get/get_navigation/get_navigation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:lit_relative_date_time/lit_relative_date_time.dart';
@@ -260,10 +257,10 @@ class _MainScreenState extends State<MainScreen>
     });
     _pageViewController = PageController(keepPage: false);
     _secondPageController = PageController(keepPage: false);
-    _controller = CameraController(
-        globals.cameras[currentCameraIndex], ResolutionPreset.medium,
-        imageFormatGroup: ImageFormatGroup.jpeg, enableAudio: false);
-    _initializeControllerFuture = _controller.initialize();
+    // _controller = CameraController(
+    //     globals.cameras[currentCameraIndex], ResolutionPreset.medium,
+    //     imageFormatGroup: ImageFormatGroup.jpeg, enableAudio: false);
+    // _initializeControllerFuture = _controller.initialize();
   }
 
   @override
@@ -494,52 +491,52 @@ class _MainScreenState extends State<MainScreen>
                       children: [
                         Column(
                           children: [
-                            // AspectRatio(
-                            //   aspectRatio: 1,
-                            //   child: Container(
-                            //     width: size.width,
-                            //     decoration: BoxDecoration(
-                            //       color: black,
-                            //       borderRadius: BorderRadius.circular(75),
-                            //     ),
-                            //   ),
-                            // ),
-                            FutureBuilder<void>(
-                              future: _initializeControllerFuture,
-                              builder: (context, snapshot) {
-                                if (snapshot.connectionState ==
-                                    ConnectionState.done) {
-                                  return GestureDetector(
-                                    onDoubleTap: onSwitchCamera,
-                                    child: SizedBox(
-                                        width: size.width,
-                                        height: size.width,
-                                        child: ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(75),
-                                          child: OverflowBox(
-                                              alignment: Alignment.center,
-                                              child: FittedBox(
-                                                  fit: BoxFit.fitWidth,
-                                                  child: SizedBox(
-                                                      width: size.width,
-                                                      child: CameraPreview(
-                                                          _controller)))),
-                                        )),
-                                  );
-                                } else {
-                                  return AspectRatio(
-                                    aspectRatio: 1,
-                                    child: Container(
-                                      width: size.width,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(50),
-                                      ),
-                                    ),
-                                  );
-                                }
-                              },
+                            AspectRatio(
+                              aspectRatio: 1,
+                              child: Container(
+                                width: size.width,
+                                decoration: BoxDecoration(
+                                  color: black,
+                                  borderRadius: BorderRadius.circular(75),
+                                ),
+                              ),
                             ),
+                            // FutureBuilder<void>(
+                            //   future: _initializeControllerFuture,
+                            //   builder: (context, snapshot) {
+                            //     if (snapshot.connectionState ==
+                            //         ConnectionState.done) {
+                            //       return GestureDetector(
+                            //         onDoubleTap: onSwitchCamera,
+                            //         child: SizedBox(
+                            //             width: size.width,
+                            //             height: size.width,
+                            //             child: ClipRRect(
+                            //               borderRadius:
+                            //                   BorderRadius.circular(75),
+                            //               child: OverflowBox(
+                            //                   alignment: Alignment.center,
+                            //                   child: FittedBox(
+                            //                       fit: BoxFit.fitWidth,
+                            //                       child: SizedBox(
+                            //                           width: size.width,
+                            //                           child: CameraPreview(
+                            //                               _controller)))),
+                            //             )),
+                            //       );
+                            //     } else {
+                            //       return AspectRatio(
+                            //         aspectRatio: 1,
+                            //         child: Container(
+                            //           width: size.width,
+                            //           decoration: BoxDecoration(
+                            //             borderRadius: BorderRadius.circular(50),
+                            //           ),
+                            //         ),
+                            //       );
+                            //     }
+                            //   },
+                            // ),
                             Padding(
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 40)
@@ -896,7 +893,7 @@ class _MainScreenState extends State<MainScreen>
             'h',
             'd',
             'w',
-            'm',
+            'mo',
             'y',
           ],
           timeUnitsPlural: [
@@ -905,7 +902,7 @@ class _MainScreenState extends State<MainScreen>
             'h',
             'd',
             'w',
-            'm',
+            'mo',
             'y',
           ],
           prepositionPast: '',
@@ -966,6 +963,7 @@ class _MainScreenState extends State<MainScreen>
                   suffixIcon: GestureDetector(
                     onTap: () {
                       print('Sent Message');
+                      Get.back();
                     },
                     child: Padding(
                       padding: const EdgeInsets.all(5.0),
@@ -997,18 +995,18 @@ class _MainScreenState extends State<MainScreen>
   }
 }
 
-class _ImageItems {
-  const _ImageItems(
-      {required this.imageUrl,
-      required this.userName,
-      this.desc = "",
-      required this.mobileNo});
+// class _ImageItems {
+//   const _ImageItems(
+//       {required this.imageUrl,
+//       required this.userName,
+//       this.desc = "",
+//       required this.mobileNo});
 
-  final String imageUrl;
-  final String userName;
-  final String desc;
-  final String mobileNo;
-}
+//   final String imageUrl;
+//   final String userName;
+//   final String desc;
+//   final String mobileNo;
+// }
 
 class ModalBottomSheet extends StatefulWidget {
   const ModalBottomSheet({super.key});
@@ -1254,8 +1252,7 @@ class _ModalBottomSheetState extends State<ModalBottomSheet>
 
                           await users
                               .collection('friendRequests')
-                              .doc(
-                                  '${_auth.currentUser!.phoneNumber}-${globals.commonContactsList[index]['number']}')
+                              .doc(_auth.currentUser!.uid)
                               .set({
                             'sender_id': _auth.currentUser!.uid,
                             'receiver_id': await users

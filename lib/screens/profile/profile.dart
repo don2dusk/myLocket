@@ -9,9 +9,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:my_locket/model/firestore.dart';
 import 'package:my_locket/screens/screens.dart';
 import 'package:my_locket/utils/colors.dart';
-import 'package:my_locket/globals.dart' as globals;
 import 'package:url_launcher/url_launcher.dart';
 
 class CustomTileItems extends StatelessWidget {
@@ -75,26 +75,9 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
   final double _swipeVelocityThreshold = 100.0;
   double _dragDistance = 0.0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   CollectionReference users = FirebaseFirestore.instance.collection('users');
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseStorage storage = FirebaseStorage.instance;
-
-  getData() {
-    return Future(
-      () async => await users
-          .doc(_auth.currentUser!.uid)
-          .get()
-          .then((DocumentSnapshot snapshot) {
-        var data = snapshot.data() as Map<String, dynamic>;
-        setState(() {
-          globals.name = data['name'];
-          globals.mobileNumber = data['phoneNumber'];
-          globals.profileUrl = data['profileUrl'];
-        });
-      }),
-    );
-  }
 
   Future<void> deleteFolder(String folderPath) async {
     var folderRef = storage.ref().child(folderPath);
@@ -108,7 +91,6 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    getData();
     _scrollController = ScrollController()
       ..addListener(() {
         setState(() {
@@ -161,13 +143,13 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const SizedBox(width: 30),
-                            globals.profileUrl == ""
+                            userStorage.read('profileUrl') == ""
                                 ? CircleAvatar(
                                     radius: 20,
                                     backgroundColor: secondaryColor,
                                     child: Center(
                                       child: Text(
-                                        "${globals.name.split(" ")[0][0]}${globals.name.split(" ")[1][0]}",
+                                        "${userStorage.read('name').split(" ")[0][0]}${userStorage.read('name').split(" ")[1][0]}",
                                         style: GoogleFonts.rubik(
                                             fontSize: 20,
                                             fontWeight: FontWeight.w700,
@@ -176,12 +158,12 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                                     ))
                                 : CircleAvatar(
                                     radius: 20,
-                                    backgroundImage:
-                                        NetworkImage(globals.profileUrl),
+                                    backgroundImage: NetworkImage(
+                                        userStorage.read('profileUrl')),
                                   ),
                             const SizedBox(width: 10),
                             Text(
-                              globals.name.split(" ")[0],
+                              userStorage.read('name').split(" ")[0],
                               style: GoogleFonts.rubik(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w700,
@@ -220,15 +202,15 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                             decoration: BoxDecoration(
                                 color: backgroundColor, shape: BoxShape.circle),
                           )),
-                      globals.profileUrl == ""
+                      userStorage.read('profileUrl') == ""
                           ? CircleAvatar(
                               radius: 80,
                               backgroundColor: secondaryColor,
                               child: Stack(children: [
                                 Center(
                                   child: Text(
-                                    globals.name.isNotEmpty
-                                        ? "${globals.name.split(" ")[0][0]}${globals.name.split(" ")[1][0]}"
+                                    userStorage.read('name').isNotEmpty
+                                        ? "${userStorage.read('name').split(" ")[0][0]}${userStorage.read('name').split(" ")[1][0]}"
                                         : "",
                                     style: GoogleFonts.rubik(
                                         fontSize: 72,
@@ -254,7 +236,8 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                           : CircleAvatar(
                               radius: 80,
                               backgroundColor: secondaryColor,
-                              backgroundImage: NetworkImage(globals.profileUrl),
+                              backgroundImage:
+                                  NetworkImage(userStorage.read('profileUrl')),
                               child: Stack(children: [
                                 Align(
                                   alignment: Alignment.bottomRight,
@@ -277,7 +260,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                 Padding(
                     padding: const EdgeInsets.only(top: 20, bottom: 10),
                     child: Text(
-                      globals.name,
+                      userStorage.read('name'),
                       style: GoogleFonts.rubik(
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
@@ -602,14 +585,14 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                             storage
                                 .ref()
                                 .child(
-                                    "images/${globals.mobileNumber}_profilePic")
+                                    "images/${userStorage.read('phoneNumber')}_profilePic")
                                 .delete();
-                            deleteFolder("images/${_auth.currentUser!.uid}");
+                            deleteFolder("images/${userStorage.read('uid')}");
                             FirebaseFirestore.instance
                                 .collection("images")
                                 .where(FieldPath.documentId,
                                     isGreaterThanOrEqualTo:
-                                        globals.mobileNumber)
+                                        userStorage.read('phoneNumber'))
                                 .get()
                                 .then((querySnapshot) {
                               querySnapshot.docs.forEach((document) {
@@ -617,10 +600,10 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                               });
                             });
                             _auth.signOut();
-                            globals.mobileNumber = "";
-                            globals.name = "";
-                            globals.profileUrl = "";
-                            users.doc(_auth.currentUser!.uid).delete();
+                            userStorage.remove("name");
+                            userStorage.remove("profileUrl");
+                            users.doc(userStorage.read('uid')).delete();
+                            userStorage.remove("uid");
                             _auth.currentUser!.delete();
                             Get.offAll(() => const WelcomeScreen());
                           }),
@@ -633,6 +616,9 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                           title: "Sign out",
                           onTap: () {
                             _auth.signOut();
+                            userStorage.remove("name");
+                            userStorage.remove("profileUrl");
+                            userStorage.remove("uid");
                             Get.offAll(() => const WelcomeScreen());
                           }),
                     ],
@@ -648,12 +634,12 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
     final ImagePicker _picker = ImagePicker();
 
     void saveImage(File file) async {
-      String fileName = "${globals.mobileNumber}_profilePic";
+      String fileName = "${userStorage.read('phoneNumber')}_profilePic";
       Reference reference = storage.ref().child('images/$fileName');
       UploadTask uploadTask = reference.putFile(file);
       TaskSnapshot storageTaskSnapshot = await uploadTask.whenComplete(() {});
       String downloadUrl = await storageTaskSnapshot.ref.getDownloadURL();
-      final imageRef = users.doc(_auth.currentUser!.uid);
+      final imageRef = users.doc(userStorage.read('uid'));
       await imageRef.update({
         'profileUrl': downloadUrl,
       });
@@ -750,17 +736,17 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                       _takeImage();
                       Get.back();
                     }, "Take photo", false),
-                    globals.profileUrl != ""
+                    userStorage.read('profileUrl') != ""
                         ? pfpmenuButtons(size, () async {
-                            globals.profileUrl = "";
-                            final imageRef = users.doc(_auth.currentUser!.uid);
+                            userStorage.write('profileUrl', "");
+                            final imageRef = users.doc(userStorage.read('uid'));
                             await imageRef.update({
                               'profileUrl': "",
                             });
                             storage
                                 .ref()
                                 .child(
-                                    "images/${globals.mobileNumber}_profilePic")
+                                    "images/${userStorage.read('phoneNumber')}_profilePic")
                                 .delete();
                             Get.back();
                           }, "Delete profile picture", true)
@@ -834,7 +820,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
     Future<void> addName(String name) async {
       final user = _auth.currentUser;
       if (user != null) {
-        final userRef = users.doc(_auth.currentUser!.uid);
+        final userRef = users.doc(userStorage.read('uid'));
         await userRef.update({
           'name': name,
         });
@@ -886,8 +872,8 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                                 ),
                               ),
                             ),
-                            editField(
-                                "", (value) {}, globals.mobileNumber, false),
+                            editField("", (value) {},
+                                userStorage.read('phoneNumber'), false),
                             const SizedBox(height: 50),
                             Container(
                               width: size.width,
@@ -946,12 +932,12 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                               ),
                             ),
                             editField("First name", (value) => newName += value,
-                                globals.name.split(" ")[0], true),
+                                userStorage.read('name').split(" ")[0], true),
                             const SizedBox(height: 20),
                             editField(
                                 "Last name",
                                 (value) => newName += " $value",
-                                globals.name.split(" ")[1],
+                                userStorage.read('name').split(" ")[1],
                                 true),
                             const SizedBox(height: 20),
                             SizedBox(
@@ -962,7 +948,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                                       _formKey.currentState!.save();
                                       addName(newName);
                                       setState(() {
-                                        globals.name = newName;
+                                        userStorage.write('name', newName);
                                       });
                                       Get.back();
                                     }

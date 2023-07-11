@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:my_locket/screens/registration/enter_number.dart';
@@ -61,10 +62,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 ),
               ),
               TextButton(
-                onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const EnterNumber())),
+                onPressed: () => Get.offAll(() => const EnterNumber()),
                 style: TextButton.styleFrom(
                   backgroundColor: primaryColor,
                   shape: RoundedRectangleBorder(
