@@ -167,7 +167,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                               style: GoogleFonts.rubik(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w700,
-                                  color: Colors.white70),
+                                  color: const Color(0xB3FFFFFF)),
                             ),
                           ],
                         ),
@@ -261,6 +261,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                     padding: const EdgeInsets.only(top: 20, bottom: 10),
                     child: Text(
                       userStorage.read('name'),
+                      textAlign: TextAlign.center,
                       style: GoogleFonts.rubik(
                           fontSize: 22,
                           fontWeight: FontWeight.w700,

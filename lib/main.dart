@@ -7,6 +7,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get_navigation/src/root/get_material_app.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:my_locket/screens/screens.dart';
 import 'globals.dart' as globals;
 import 'utils/colors.dart';
@@ -23,6 +24,7 @@ void main() async {
   } else if (Platform.isIOS) {
     CupertinoNavigationBar(backgroundColor: backgroundColor);
   }
+  await GetStorage.init();
   runApp(const MyApp());
 }
 

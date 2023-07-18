@@ -3,9 +3,7 @@ import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:camera/camera.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:contacts_service/contacts_service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 
@@ -14,36 +12,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:lit_relative_date_time/lit_relative_date_time.dart';
+import 'package:my_locket/model/firestore.dart';
 import 'package:my_locket/screens/screens.dart';
 import 'package:my_locket/utils/colors.dart';
 import 'package:my_locket/globals.dart' as globals;
 import 'package:permission_handler/permission_handler.dart';
-
-class User {
-  final String uid;
-  final String message;
-  final String url;
-  final bool visibility;
-  final String date_created;
-  User({
-    required this.uid,
-    required this.message,
-    required this.url,
-    required this.visibility,
-    required this.date_created,
-  });
-
-  factory User.fromFirestore(DocumentSnapshot doc) {
-    Map data = doc.data() as Map<String, dynamic>;
-    return User(
-      uid: data['uid'],
-      message: data['message'],
-      url: data['url'],
-      visibility: data['visibility'],
-      date_created: data['date_created'],
-    );
-  }
-}
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -63,9 +36,8 @@ class _MainScreenState extends State<MainScreen>
   int mainPageIndex = 0;
   final double _swipeVelocityThreshold = 100.0;
   double _dragDistance = 0.0;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  FirebaseFirestore users = FirebaseFirestore.instance;
   var imageItems = [];
+  List<List<dynamic>> imageList = [];
   String userName = "";
   String profilePicUrl = "";
   List<String> contactsList = [];
@@ -82,23 +54,47 @@ class _MainScreenState extends State<MainScreen>
     });
   }
 
-  Future<void> getUsers() async {
-    await users
+  void getImages() async {
+    final ref =
+        await firestore.collection("images").doc('fnsvCsJKrYoi2aBjkQTl').get();
+    final docSnap = ref.data() as Map<String, dynamic>;
+    final userRef =
+        await firestore.collection('users').doc(docSnap['uid'] as String).get();
+    final snapshot = userRef.data();
+    imageList.add([
+      Images(
+          dateCreated: docSnap['dateCreated'] as String?,
+          message: docSnap['message'] as String?,
+          url: docSnap['url'] as String?,
+          uid: docSnap['uid'] as String?,
+          visibility: docSnap['visibility'] is Iterable
+              ? List.from(docSnap['visibility'])
+              : null),
+      Users(
+        name: snapshot!['name'] as String?,
+        profileUrl: snapshot['profileUrl'],
+      )
+    ]);
+  }
+
+  Future<void> getfirestore() async {
+    await firestore
         .collection('images')
         .orderBy('date_created', descending: true)
         .get()
         .then((snapshot) {
       var userItems = [];
-      for (var doc in snapshot.docs) {
-        userItems.add(User.fromFirestore(doc));
-      }
+      // for (var doc in snapshot.docs) {
+      //   userItems.add(Users.fromFirestore(
+      //     doc
+      //   ));
+      // }
       imageItems = userItems;
     });
   }
 
   void getuserInfo(String uid) async {
-    DocumentSnapshot docSnapshot =
-        await users.collection('users').doc(uid).get();
+    final docSnapshot = await firestore.collection('users').doc(uid).get();
     var data = docSnapshot.data() as Map<String, dynamic>;
     setState(() {
       userName = data['name'];
@@ -107,11 +103,11 @@ class _MainScreenState extends State<MainScreen>
   }
 
   Future<void> getStatus(String phoneNumber) async {
-    await users
+    await firestore
         .collection('friendRequests')
-        .where('sender_id', isEqualTo: _auth.currentUser!.uid)
+        .where('sender_id', isEqualTo: userStorage.read('uid'))
         .where('receiver_id',
-            isEqualTo: await users
+            isEqualTo: await firestore
                 .collection('users')
                 .where('phoneNumber', isEqualTo: phoneNumber)
                 .get()
@@ -129,82 +125,46 @@ class _MainScreenState extends State<MainScreen>
   }
 
   Future<void> getContacts() async {
-    final PermissionStatus status = await Permission.contacts.request();
+    List<Contact> phoneContacts = await ContactsService.getContacts();
+    List<Users> appContacts = [];
 
-    if (status.isGranted) {
-      final Iterable<Contact> contacts = await ContactsService.getContacts();
-      contacts.forEach((contact) async {
-        if (contact.phones!.isNotEmpty) {
-          final String phoneNum =
-              contact.phones!.first.value!.replaceAll(" ", "");
-          String userPhoneNum = await users
-              .collection('users')
-              .doc(_auth.currentUser!.uid)
-              .get()
-              .then((snapshot) {
-            var data = snapshot.data() as Map<String, dynamic>;
-            return data['phoneNumber'];
-          });
-          if (phoneNum.startsWith("0")) {
-            contactsList.add("+234${phoneNum.substring(1)}");
-          } else {
-            contactsList.add(phoneNum);
+    for (var phoneContact in phoneContacts) {
+      for (var phone in phoneContact.phones!) {
+        phone.value =
+            phone.value!.replaceAll(" ", "").replaceAll(RegExp(r"[^\+\d]"), "");
+        if (phone.value!.startsWith("0")) {
+          phone.value = "+234${phone.value!.substring(1)}";
+        }
+        await firestore
+            .collection("users")
+            .where('phoneNumber', isEqualTo: phone.value!)
+            .get()
+            .then((snapshot) {
+          for (var docSnap in snapshot.docs) {
+            final doc = docSnap.data();
+            appContacts.add(Users(
+                name: doc['name'],
+                profileUrl: doc['profileUrl'],
+                phoneNumber: doc['phoneNumber']));
           }
-        }
-      });
-
-      await users
-          .collection('users')
-          .where("phoneNumber", isNull: false)
-          .get()
-          .then((querySnapshot) {
-        for (var snapshot in querySnapshot.docs) {
-          var numb = snapshot['phoneNumber'];
-          phoneNumbers.add(numb);
-        }
-      });
-
-      for (var n in contactsList
-          .toSet()
-          .intersection((phoneNumbers.toSet()))
-          .toList()) {
-        for (var contact in contacts) {
-          if (contact.phones!.isNotEmpty) {
-            String phoneNum = contact.phones!.first.value!.replaceAll(" ", "");
-            if (n ==
-                (phoneNum.startsWith("0")
-                    ? "+234${phoneNum.substring(1)}"
-                    : phoneNum)) {
-              Map<String, String> con = {};
-              con['name'] = contact.displayName!;
-              con['number'] = n;
-
-              globals.commonContactsList.add(con);
-
-              await getStatus(n);
-              if (requestStatus == "pending") {
-                globals.sentRequestList.add(con);
-              }
-            }
-          }
-        }
+        });
       }
-    } else if (status.isDenied) {}
+    }
   }
 
   Future<void> receiveRequests() async {
     final contacts = await ContactsService.getContacts();
 
-    await users
+    await firestore
         .collection('friendRequests')
-        .where('receiver_id', isEqualTo: _auth.currentUser!.uid)
+        .where('receiver_id', isEqualTo: userStorage.read('uid'))
         .where('status', isEqualTo: 'pending')
         .get()
         .then((snapshot) async {
       for (var data in snapshot.docs) {
         String receivedRequestName = "";
         String receivedRequestPhone = "";
-        await users
+        await firestore
             .collection('users')
             .doc(data['sender_id'])
             .get()
@@ -241,6 +201,7 @@ class _MainScreenState extends State<MainScreen>
   @override
   void initState() {
     super.initState();
+    getImages();
     getContacts().then((value) {
       receiveRequests();
       removeItemsfromcommonContacts(globals.commonContactsList,
@@ -252,15 +213,15 @@ class _MainScreenState extends State<MainScreen>
         CurvedAnimation(parent: animationController, curve: Curves.easeIn);
     animationController.reset();
     animationController.forward();
-    getUsers().then((value) async {
+    getfirestore().then((value) async {
       getuserInfo(imageItems[0].uid);
     });
     _pageViewController = PageController(keepPage: false);
     _secondPageController = PageController(keepPage: false);
-    // _controller = CameraController(
-    //     globals.cameras[currentCameraIndex], ResolutionPreset.medium,
-    //     imageFormatGroup: ImageFormatGroup.jpeg, enableAudio: false);
-    // _initializeControllerFuture = _controller.initialize();
+    _controller = CameraController(
+        globals.cameras[currentCameraIndex], ResolutionPreset.medium,
+        imageFormatGroup: ImageFormatGroup.jpeg, enableAudio: false);
+    _initializeControllerFuture = _controller.initialize();
   }
 
   @override
@@ -482,7 +443,7 @@ class _MainScreenState extends State<MainScreen>
                       onPageChanged: (int value) {
                         setState(() {
                           mainPageIndex = value;
-                          getUsers();
+                          getfirestore();
                           getuserInfo(imageItems[0].uid);
                           animationController.reset();
                           animationController.forward();
@@ -491,52 +452,52 @@ class _MainScreenState extends State<MainScreen>
                       children: [
                         Column(
                           children: [
-                            AspectRatio(
-                              aspectRatio: 1,
-                              child: Container(
-                                width: size.width,
-                                decoration: BoxDecoration(
-                                  color: black,
-                                  borderRadius: BorderRadius.circular(75),
-                                ),
-                              ),
-                            ),
-                            // FutureBuilder<void>(
-                            //   future: _initializeControllerFuture,
-                            //   builder: (context, snapshot) {
-                            //     if (snapshot.connectionState ==
-                            //         ConnectionState.done) {
-                            //       return GestureDetector(
-                            //         onDoubleTap: onSwitchCamera,
-                            //         child: SizedBox(
-                            //             width: size.width,
-                            //             height: size.width,
-                            //             child: ClipRRect(
-                            //               borderRadius:
-                            //                   BorderRadius.circular(75),
-                            //               child: OverflowBox(
-                            //                   alignment: Alignment.center,
-                            //                   child: FittedBox(
-                            //                       fit: BoxFit.fitWidth,
-                            //                       child: SizedBox(
-                            //                           width: size.width,
-                            //                           child: CameraPreview(
-                            //                               _controller)))),
-                            //             )),
-                            //       );
-                            //     } else {
-                            //       return AspectRatio(
-                            //         aspectRatio: 1,
-                            //         child: Container(
-                            //           width: size.width,
-                            //           decoration: BoxDecoration(
-                            //             borderRadius: BorderRadius.circular(50),
-                            //           ),
-                            //         ),
-                            //       );
-                            //     }
-                            //   },
+                            // AspectRatio(
+                            //   aspectRatio: 1,
+                            //   child: Container(
+                            //     width: size.width,
+                            //     decoration: BoxDecoration(
+                            //       color: black,
+                            //       borderRadius: BorderRadius.circular(75),
+                            //     ),
+                            //   ),
                             // ),
+                            FutureBuilder<void>(
+                              future: _initializeControllerFuture,
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.done) {
+                                  return GestureDetector(
+                                    onDoubleTap: onSwitchCamera,
+                                    child: SizedBox(
+                                        width: size.width,
+                                        height: size.width,
+                                        child: ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(75),
+                                          child: OverflowBox(
+                                              alignment: Alignment.center,
+                                              child: FittedBox(
+                                                  fit: BoxFit.fitWidth,
+                                                  child: SizedBox(
+                                                      width: size.width,
+                                                      child: CameraPreview(
+                                                          _controller)))),
+                                        )),
+                                  );
+                                } else {
+                                  return AspectRatio(
+                                    aspectRatio: 1,
+                                    child: Container(
+                                      width: size.width,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(50),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
                             Padding(
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 40)
@@ -622,7 +583,7 @@ class _MainScreenState extends State<MainScreen>
                                         controller: _secondPageController,
                                         scrollDirection: Axis.vertical,
                                         onPageChanged: (value) {
-                                          getUsers();
+                                          getfirestore();
                                           getuserInfo(imageItems[value].uid);
                                           setState(() {
                                             currentPageIndex = value;
@@ -733,9 +694,8 @@ class _MainScreenState extends State<MainScreen>
                                                           horizontal: 10),
                                                       child: Text(
                                                         image.uid ==
-                                                                _auth
-                                                                    .currentUser!
-                                                                    .uid
+                                                                userStorage
+                                                                    .read('uid')
                                                             ? "You"
                                                             : userName
                                                                 .split(" ")[0],
@@ -1020,8 +980,6 @@ class _ModalBottomSheetState extends State<ModalBottomSheet>
   late Timer timer;
   late AnimationController _animationController;
   late Animation<double> _animation;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  FirebaseFirestore users = FirebaseFirestore.instance;
   bool isLoading = true;
 
   int namesIndex = 0;
@@ -1194,10 +1152,10 @@ class _ModalBottomSheetState extends State<ModalBottomSheet>
                           "${globals.sentRequestList[index]['name'].split(" ")[0][0]}${globals.sentRequestList[index]['name'].split(" ")[1][0] ?? ""}",
                           globals.sentRequestList[index]['name'],
                           globals.sentRequestList[index]['number'], () async {
-                        await users
+                        await firestore
                             .collection('friendRequests')
                             .doc(
-                                '${_auth.currentUser!.phoneNumber}-${globals.sentRequestList[index]['number']}')
+                                '${userStorage.read('phoneNumber')}-${globals.sentRequestList[index]['number']}')
                             .delete();
                         globals.commonContactsList.add({
                           'name': globals.sentRequestList[index]['name'],
@@ -1250,12 +1208,12 @@ class _ModalBottomSheetState extends State<ModalBottomSheet>
                             isLoading = true;
                           });
 
-                          await users
+                          await firestore
                               .collection('friendRequests')
-                              .doc(_auth.currentUser!.uid)
+                              .doc(userStorage.read('uid'))
                               .set({
-                            'sender_id': _auth.currentUser!.uid,
-                            'receiver_id': await users
+                            'sender_id': userStorage.read('uid'),
+                            'receiver_id': await firestore
                                 .collection('users')
                                 .where('phoneNumber',
                                     isEqualTo: globals.commonContactsList[index]

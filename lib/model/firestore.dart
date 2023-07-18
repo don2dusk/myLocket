@@ -58,9 +58,11 @@ class Images {
   final String? dateCreated;
   final String? message;
   final String? url;
+  final String? uid;
   final List<String>? visibility;
 
-  const Images({this.dateCreated, this.message, this.url, this.visibility});
+  const Images(
+      {this.dateCreated, this.message, this.url, this.visibility, this.uid});
 
   factory Images.fromFirestore(DocumentSnapshot<Map<String, dynamic>> snapshot,
       SnapshotOptions? options) {

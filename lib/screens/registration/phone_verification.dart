@@ -187,10 +187,10 @@ class _PhoneVerificationState extends State<PhoneVerification>
                                     .get();
 
                                 if (querySnapshot.docs.isNotEmpty) {
-                                  userStorage.write(
-                                      'uid', auth.currentUser!.uid);
                                   userStorage.remove('verificationId');
 
+                                  userStorage.write(
+                                      'uid', auth.currentUser!.uid);
                                   final ref = firestore
                                       .collection("users")
                                       .doc(userStorage.read('uid'))
@@ -200,10 +200,10 @@ class _PhoneVerificationState extends State<PhoneVerification>
                                             user.toFirestore(),
                                       );
                                   final docSnap = await ref.get();
-                                  final city = docSnap.data();
-                                  userStorage.write('name', city!.name);
+                                  final aUser = docSnap.data();
+                                  userStorage.write('name', aUser!.name);
                                   userStorage.write(
-                                      'profileUrl', city.profileUrl);
+                                      'profileUrl', aUser.profileUrl);
 
                                   Get.offAll(() => const MainScreen());
                                 } else {
