@@ -643,7 +643,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
       final imageRef = users.doc(userStorage.read('uid'));
       await imageRef.update({
         'profileUrl': downloadUrl,
-      });
+      }).then((val) => userStorage.write('profileUrl', downloadUrl));
     }
 
     Future<void> _selectImage() async {
@@ -739,7 +739,9 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                     }, "Take photo", false),
                     userStorage.read('profileUrl') != ""
                         ? pfpmenuButtons(size, () async {
-                            userStorage.write('profileUrl', "");
+                            setState(() {
+                              userStorage.write('profileUrl', "");
+                            });
                             final imageRef = users.doc(userStorage.read('uid'));
                             await imageRef.update({
                               'profileUrl': "",
