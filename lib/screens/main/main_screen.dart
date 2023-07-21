@@ -55,26 +55,36 @@ class _MainScreenState extends State<MainScreen>
   }
 
   void getImages() async {
-    final ref =
-        await firestore.collection("images").doc('fnsvCsJKrYoi2aBjkQTl').get();
-    final docSnap = ref.data() as Map<String, dynamic>;
-    final userRef =
-        await firestore.collection('users').doc(docSnap['uid'] as String).get();
-    final snapshot = userRef.data();
-    imageList.add([
-      Images(
-          dateCreated: docSnap['dateCreated'] as String?,
-          message: docSnap['message'] as String?,
-          url: docSnap['url'] as String?,
-          uid: docSnap['uid'] as String?,
-          visibility: docSnap['visibility'] is Iterable
-              ? List.from(docSnap['visibility'])
-              : null),
-      Users(
-        name: snapshot!['name'] as String?,
-        profileUrl: snapshot['profileUrl'],
-      )
-    ]);
+    await firestore
+        .collection("images")
+        .where('uid', isEqualTo: userStorage.read('uid'))
+        .get()
+        .then((querySnapshot) async {
+      for (var snapshot in querySnapshot.docs) {
+        final snapshotData = snapshot.data();
+
+        final userRef = await firestore
+            .collection('users')
+            .doc(snapshotData['uid'] as String)
+            .get();
+        final docSnap = userRef.data();
+
+        imageList.add([
+          Images(
+              dateCreated: snapshotData['dateCreated'],
+              message: snapshotData['message'],
+              url: snapshotData['url'],
+              uid: snapshotData['uid'],
+              visibility: snapshotData['visibility'] is Iterable
+                  ? List.from(snapshotData['visibility'])
+                  : null),
+          Users(
+            name: docSnap!['name'],
+            profileUrl: docSnap['profileUrl'],
+          )
+        ]);
+      }
+    });
   }
 
   Future<void> getfirestore() async {
