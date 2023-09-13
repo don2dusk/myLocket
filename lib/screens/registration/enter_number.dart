@@ -54,7 +54,7 @@ class _EnterNumberState extends State<EnterNumber> {
                       child: Container(
                         height: 50,
                         width: 50,
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           shape: BoxShape.circle,
                           color: secondaryColor,
                         ),

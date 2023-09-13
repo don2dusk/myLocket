@@ -596,9 +596,9 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                                         userStorage.read('phoneNumber'))
                                 .get()
                                 .then((querySnapshot) {
-                              querySnapshot.docs.forEach((document) {
+                              for (var document in querySnapshot.docs) {
                                 document.reference.delete();
-                              });
+                              }
                             });
                             _auth.signOut();
                             userStorage.remove("name");
@@ -632,7 +632,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
 
   void addProfileModal() {
     Size size = MediaQuery.of(context).size;
-    final ImagePicker _picker = ImagePicker();
+    final ImagePicker picker = ImagePicker();
 
     void saveImage(File file) async {
       String fileName = "${userStorage.read('phoneNumber')}_profilePic";
@@ -648,7 +648,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
 
     Future<void> _selectImage() async {
       final XFile? selectedImage =
-          await _picker.pickImage(source: ImageSource.gallery);
+          await picker.pickImage(source: ImageSource.gallery);
       CroppedFile? croppedFile = await ImageCropper().cropImage(
           sourcePath: selectedImage!.path,
           cropStyle: CropStyle.circle,
@@ -675,7 +675,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
 
     Future<void> _takeImage() async {
       final XFile? selectedImage =
-          await _picker.pickImage(source: ImageSource.camera);
+          await picker.pickImage(source: ImageSource.camera);
 
       CroppedFile? croppedFile = await ImageCropper().cropImage(
           sourcePath: selectedImage!.path,
@@ -830,7 +830,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
       }
     }
 
-    GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+    GlobalKey<FormState> formKey = GlobalKey<FormState>();
     String newName = "";
     Size size = MediaQuery.of(context).size;
     showModalBottomSheet(
@@ -860,7 +860,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                       ),
                       Expanded(
                           child: Form(
-                        key: _formKey,
+                        key: formKey,
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -919,7 +919,7 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                       ),
                       Expanded(
                           child: Form(
-                        key: _formKey,
+                        key: formKey,
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -947,8 +947,8 @@ class _ProfileState extends State<Profile> with SingleTickerProviderStateMixin {
                               width: size.width,
                               child: TextButton(
                                   onPressed: () {
-                                    if (_formKey.currentState!.validate()) {
-                                      _formKey.currentState!.save();
+                                    if (formKey.currentState!.validate()) {
+                                      formKey.currentState!.save();
                                       addName(newName);
                                       setState(() {
                                         userStorage.write('name', newName);

@@ -28,7 +28,7 @@ class _PhoneVerificationState extends State<PhoneVerification>
   late Animation<double> _animation;
   FirebaseAuth auth = FirebaseAuth.instance;
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
-  Users userInstance = Users();
+  Users userInstance = const Users();
   final _formKey = GlobalKey<FormState>();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   String code = "";
@@ -96,7 +96,7 @@ class _PhoneVerificationState extends State<PhoneVerification>
                         child: Container(
                           height: 50,
                           width: 50,
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             shape: BoxShape.circle,
                             color: secondaryColor,
                           ),

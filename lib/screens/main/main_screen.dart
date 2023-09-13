@@ -16,7 +16,6 @@ import 'package:my_locket/model/firestore.dart';
 import 'package:my_locket/screens/screens.dart';
 import 'package:my_locket/utils/colors.dart';
 import 'package:my_locket/globals.dart' as globals;
-import 'package:permission_handler/permission_handler.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -1354,10 +1353,10 @@ class _ModalBottomSheetState extends State<ModalBottomSheet>
                   )
                 : GestureDetector(
                     onTap: onClick,
-                    child: CircleAvatar(
+                    child: const CircleAvatar(
                       radius: 18,
                       backgroundColor: secondaryColor,
-                      child: const Icon(Icons.close, color: white, size: 20),
+                      child: Icon(Icons.close, color: white, size: 20),
                     ),
                   )),
       ),
